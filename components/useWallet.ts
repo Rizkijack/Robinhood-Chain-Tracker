@@ -2,8 +2,6 @@
 
 import { useCallback } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
-import { usePrivy, useLogout } from "@privy-io/react-auth";
-import { ROBINHOOD_CHAIN_ID_HEX } from "@/lib/chains";
 
 export const WALLET_EXPLORER_BASE = "https://explorer.robinhood.com/address/";
 
@@ -16,59 +14,45 @@ export interface WalletState {
   disconnect: () => void;
 }
 
+/**
+ * Base wallet state backed by wagmi/Reown.
+ * Privy hooks must never run without a mounted PrivyProvider, so social login
+ * is exposed only after a real Privy integration is configured separately.
+ */
 export function useWallet(): WalletState {
   const { address, status: wagmiStatus } = useAccount();
-  const { connectors, connectAsync, isPending: connectPending } = useConnect();
-  const { disconnectAsync: disconnectWagmi } = useDisconnect();
-
-  const privy = usePrivy();
-  const privyUser = privy?.user;
-  const { logout: privyLogout } = useLogout();
-
-  // Prefer wagmi (Reown) address, fall back to Privy embedded address
-  const addressOut = address ?? privyUser?.wallet?.address ?? null;
-  const via: WalletState["via"] = address ? "reown" : privyUser ? "privy" : null;
-  const status: WalletState["status"] = addressOut
-    ? "connected"
-    : wagmiStatus === "connecting" || wagmiStatus === "reconnecting"
-      ? "reconnecting"
-      : "disconnected";
+  const { connectors, connectAsync } = useConnect();
+  const { disconnectAsync } = useDisconnect();
 
   const connectExternal = useCallback(async () => {
     try {
-      if (connectors.length > 0) {
-        await connectAsync({ connector: connectors[0] });
-      }
+      const connector = connectors[0];
+      if (connector) await connectAsync({ connector });
     } catch {
       /* user rejected or no connector */
     }
   }, [connectors, connectAsync]);
 
-  const connectSocial = useCallback(async () => {
-    try {
-      privy.login();
-    } catch {
-      /* user closed modal */
-    }
-  }, [privy]);
+  const connectSocial = useCallback(() => {
+    // Kept in the shared interface; enabled by the Privy-specific integration.
+  }, []);
 
   const disconnect = useCallback(async () => {
     try {
-      if (address) await disconnectWagmi();
-      if (privyUser) privyLogout();
+      if (address) await disconnectAsync();
     } catch {
       /* ignore */
     }
-  }, [address, privyUser, disconnectWagmi, privyLogout]);
-
-  // Suppress unused-var warnings for framework hooks that are informational
-  void connectPending;
-  void ROBINHOOD_CHAIN_ID_HEX;
+  }, [address, disconnectAsync]);
 
   return {
-    address: addressOut ?? null,
-    via,
-    status,
+    address: address ?? null,
+    via: address ? "reown" : null,
+    status: address
+      ? "connected"
+      : wagmiStatus === "connecting" || wagmiStatus === "reconnecting"
+        ? wagmiStatus
+        : "disconnected",
     connectExternal,
     connectSocial,
     disconnect,

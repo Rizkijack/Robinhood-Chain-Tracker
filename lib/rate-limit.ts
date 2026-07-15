@@ -115,8 +115,13 @@ export const strictLimiter = new RateLimiter({
  * For production multi-instance rate limiting, use Upstash Redis + @upstash/ratelimit.
  */
 if (typeof setInterval !== "undefined") {
-  setInterval(() => {
+  const pruneTimer = setInterval(() => {
     apiLimiter.prune();
     strictLimiter.prune();
   }, 300_000);
+
+  // Do not keep build workers or serverless instances alive solely for cleanup.
+  if (typeof pruneTimer === "object" && "unref" in pruneTimer) {
+    pruneTimer.unref();
+  }
 }
