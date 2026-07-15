@@ -1,21 +1,39 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useWallet, WALLET_EXPLORER_BASE } from "./useWallet";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { shortenAddress } from "@/lib/wallet";
 
-const REOWN_ENABLED = Boolean(process.env.NEXT_PUBLIC_REOWN_PROJECT_ID);
+// Check if Privy is configured
 const PRIVY_ENABLED = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
+const REOWN_ENABLED = Boolean(process.env.NEXT_PUBLIC_REOWN_PROJECT_ID);
+
+// Try to import Privy hooks if available
+let usePrivy: any = () => ({});
+let useWallets: any = () => ({ wallets: [] });
+
+if (PRIVY_ENABLED) {
+  try {
+    const privyModule = require("@privy-io/react-auth");
+    usePrivy = privyModule.usePrivy;
+    useWallets = privyModule.useWallets;
+  } catch (error) {
+    console.warn("Privy not available:", error);
+  }
+}
+
+export const WALLET_EXPLORER_BASE = "https://explorer.robinhood.com/address/";
 
 export function ConnectWallet() {
-  const {
-    address,
-    via,
-    status,
-    connectExternal,
-    connectSocial,
-    disconnect,
-  } = useWallet();
+  // Wagmi hooks
+  const { address: wagmiAddress, status: wagmiStatus } = useAccount();
+  const { connectors, connectAsync } = useConnect();
+  const { disconnectAsync } = useDisconnect();
+  
+  // Privy hooks
+  const { login: privyLogin, authenticated: privyAuthenticated, logout: privyLogout } = usePrivy();
+  const { wallets: privyWallets } = useWallets();
+  
   const [menuOpen, setMenuOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -29,6 +47,57 @@ export function ConnectWallet() {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, [menuOpen]);
+
+  // Calculate derived state
+  const privyAddress = privyAuthenticated && privyWallets.length > 0 
+    ? privyWallets[0].address 
+    : null;
+  
+  const address = privyAddress || wagmiAddress || null;
+  const via = privyAddress ? "privy" : (wagmiAddress ? "reown" : null);
+  
+  let status: "connected" | "disconnected" | "connecting" | "reconnecting";
+  if (address) {
+    status = "connected";
+  } else if (wagmiStatus === "connecting" || wagmiStatus === "reconnecting") {
+    status = wagmiStatus;
+  } else {
+    status = "disconnected";
+  }
+
+  // Connection functions
+  const connectExternal = async () => {
+    try {
+      const connector = connectors[0];
+      if (connector) await connectAsync({ connector });
+    } catch {
+      /* user rejected or no connector */
+    }
+  };
+
+  const connectSocial = async () => {
+    try {
+      if (PRIVY_ENABLED && privyLogin) {
+        await privyLogin();
+      } else {
+        console.warn("Privy not available for social login");
+      }
+    } catch (error) {
+      console.error("Social login failed:", error);
+    }
+  };
+
+  const disconnect = async () => {
+    try {
+      if (privyAddress && privyLogout) {
+        await privyLogout();
+      } else if (wagmiAddress) {
+        await disconnectAsync();
+      }
+    } catch (error) {
+      console.error("Disconnect failed:", error);
+    }
+  };
 
   // ── Connected: show address + menu ───────────────────────────────
   if (status === "connected" && address) {

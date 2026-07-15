@@ -34,7 +34,18 @@ export function useWallet(): WalletState {
   }, [connectors, connectAsync]);
 
   const connectSocial = useCallback(() => {
-    // Kept in the shared interface; enabled by the Privy-specific integration.
+    // Check if we're in a Privy-enabled environment
+    const isPrivyEnabled = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
+    
+    if (isPrivyEnabled) {
+      // Try to trigger Privy login
+      // This will be handled by the actual Privy implementation
+      console.log("Privy login triggered - needs implementation");
+      // For now, show a message
+      alert("Privy login is configured but not fully implemented. Please check the console for details.");
+    } else {
+      console.warn("Privy is not configured. Set NEXT_PUBLIC_PRIVY_APP_ID to enable social login.");
+    }
   }, []);
 
   const disconnect = useCallback(async () => {
