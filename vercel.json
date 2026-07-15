@@ -1,0 +1,9 @@
+{
+  "alias": ["robinhoodscreener.vercel.app"],
+  "crons": [
+    {
+      "path": "/api/cron/refresh",
+      "schedule": "*/1 * * * *"
+    }
+  ]
+}

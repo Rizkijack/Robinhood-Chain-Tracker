@@ -1,0 +1,129 @@
+/* ── Controls Wrapper ────────────────────── */
+.controls-wrap {
+  margin-bottom: 8px;
+}
+
+/* ── Subnav (Tabs) ──────────────────────── */
+.subnav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  overflow-x: auto;
+}
+
+.tab {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.03);
+}
+
+.tab.active {
+  color: var(--text);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px rgba(61,139,253,0.25);
+}
+
+.tab .count {
+  margin-left: 6px;
+  color: var(--text-mute);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.chain-group {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.chain {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  color: var(--text-mute);
+  font-size: 12px;
+}
+
+.chain:hover {
+  color: var(--text);
+  background: var(--bg-2);
+}
+
+.chain.active {
+  color: var(--text);
+  border-color: var(--line);
+  background: var(--bg-2);
+}
+
+/* ── Filter Bar ─────────────────────────── */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line-soft);
+  background: #0a0e15;
+  overflow-x: auto;
+}
+
+.filter-label {
+  color: var(--text-mute);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 2px;
+}
+
+.seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-0);
+}
+
+.seg button {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  color: var(--text-mute);
+  font-size: 12px;
+}
+
+.seg button.active {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.selectish {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-0);
+  color: var(--text-dim);
+  outline: none;
+}
+
+.filters .spacer {
+  flex: 1;
+}
+
+.meta-live {
+  color: var(--text-mute);
+  font-family: var(--mono);
+  font-size: 11px;
+}

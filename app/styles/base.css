@@ -1,0 +1,87 @@
+:root {
+  /* PulseScan-inspired dark palette */
+  --bg-0: #07090d;
+  --bg-1: #0c1017;
+  --bg-2: #121826;
+  --bg-3: #182033;
+  --bg-hover: #1c2740;
+  --line: #243049;
+  --line-soft: #1a2438;
+  --text: #e8eefc;
+  --text-dim: #9aa8c7;
+  --text-mute: #6b7a99;
+  --accent: #3d8bfd;
+  --accent-soft: rgba(61, 139, 253, 0.14);
+  --green: #22c55e;
+  --green-soft: rgba(34, 197, 94, 0.12);
+  --red: #ef4444;
+  --red-soft: rgba(239, 68, 68, 0.12);
+  --amber: #f59e0b;
+  --purple: #a78bfa;
+  --cyan: #22d3ee;
+  --radius: 10px;
+  --font: var(--font-inter), "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: var(--font-mono), "Cascadia Code", "SF Mono", Consolas, "Courier New", monospace;
+  --header-h: 56px;
+  --subnav-h: 48px;
+  --filter-h: 52px;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg-0);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.4;
+}
+button, input, select {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+  border: 0;
+  background: none;
+}
+a { color: inherit; text-decoration: none; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-mute);
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Keyframes */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

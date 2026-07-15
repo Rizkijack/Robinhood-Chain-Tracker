@@ -1,0 +1,31 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Robinhood Pair Tracker logo</title>
+  <desc id="desc">A neon green Robinhood Chain scanner mark combining a hood, upward market arrow, and radar ring.</desc>
+  <defs>
+    <linearGradient id="hood" x1="31" y1="21" x2="101" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#78FF8C"/>
+      <stop offset="0.48" stop-color="#00C805"/>
+      <stop offset="1" stop-color="#008F11"/>
+    </linearGradient>
+    <linearGradient id="shadow" x1="33" y1="30" x2="94" y2="98" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B2A14"/>
+      <stop offset="1" stop-color="#031106"/>
+    </linearGradient>
+    <filter id="glow" x="6" y="4" width="116" height="116" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="5" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0 0 0 0 0 0.784314 0 0 0 0 0.0196078 0 0 0 0.55 0"/>
+      <feBlend in2="BackgroundImageFix" result="dropShadow"/>
+      <feBlend in="SourceGraphic" in2="dropShadow" result="shape"/>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="#061008"/>
+  <path d="M28 72C28 43.28 43.5 23 64 23C84.5 23 100 43.28 100 72V99H83V71.5C83 59.54 75.36 49 64 49C52.64 49 45 59.54 45 71.5V99H28V72Z" fill="url(#hood)" filter="url(#glow)"/>
+  <path d="M47 99V72C47 58.95 53.95 51 64 51C74.05 51 81 58.95 81 72V99H47Z" fill="url(#shadow)"/>
+  <path d="M41 52C46.64 40.65 54.45 35 64 35C73.55 35 81.36 40.65 87 52C80.75 47.47 73.08 45 64 45C54.92 45 47.25 47.47 41 52Z" fill="#B9FFC5" fill-opacity="0.92"/>
+  <path d="M43 82H58.25L69.15 69.2L78.35 77.25L91 60" stroke="#78FF8C" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M80.5 59.5H91.5V70.5" stroke="#78FF8C" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M22 44C18.16 50.13 16 57.42 16 65C16 72.79 18.25 80.02 22.13 86" stroke="#00C805" stroke-width="4" stroke-linecap="round" stroke-opacity="0.78"/>
+  <path d="M106 44C109.84 50.13 112 57.42 112 65C112 72.79 109.75 80.02 105.87 86" stroke="#00C805" stroke-width="4" stroke-linecap="round" stroke-opacity="0.78"/>
+  <path d="M31 29L24 22M97 29L104 22M64 17V9" stroke="#78FF8C" stroke-width="4" stroke-linecap="round" stroke-opacity="0.7"/>
+</svg>

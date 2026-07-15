@@ -1,0 +1,141 @@
+/* ── Responsive (Mobile-First) ──────────────── */
+
+/* 480px — small phones */
+@media (max-width: 480px) {
+  .header {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 8px;
+    height: auto;
+  }
+
+  .brand { min-width: auto; }
+  .brand-name { font-size: 13px; }
+  .brand-sub, .brand-mark { display: none; }
+
+  .search-wrap { order: 3; max-width: 100%; flex: 0 0 100%; }
+  .search { height: 32px; font-size: 13px; }
+
+  .header-right { gap: 4px; }
+  .header-right .pill:not(.live-pill) { display: none; }
+  .ext-links { display: none; }
+  .header-right .btn { padding: 0 8px; font-size: 11px; height: 28px; }
+  .live-pill { font-size: 10px; height: 26px; padding: 0 6px; }
+  .live-pill .dot { width: 5px; height: 5px; }
+
+  .stats { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .stat-card { padding: 6px 8px; }
+  .stat-card .value { font-size: 0.9rem; }
+  .stat-card .label { font-size: 8px; }
+
+  .subnav { padding: 0 4px; gap: 2px; }
+  .tab { padding: 0 6px; font-size: 11px; height: 32px; }
+  .chain-group { display: none; }
+
+  .filters { flex-wrap: wrap; padding: 4px 6px; gap: 4px; }
+  .filter-label { display: none; }
+  .seg { flex-wrap: nowrap; overflow-x: auto; }
+  .seg button { padding: 0 6px; font-size: 11px; height: 26px; }
+  .selectish { height: 28px; font-size: 11px; padding: 0 6px; }
+  .meta-live { font-size: 10px; }
+
+  table.pairs { min-width: 760px; }
+  table.pairs th,
+  table.pairs td { padding: 6px 6px; font-size: 11px; }
+
+  .token-cell { min-width: 130px; gap: 6px; }
+  .token-icon { width: 24px; height: 24px; font-size: 9px; }
+  .token-sym { font-size: 12px; }
+  .token-pair { font-size: 10px; }
+
+  .row-actions { gap: 2px; }
+  .row-actions a,
+  .row-actions button { padding: 2px 5px; font-size: 10px; }
+
+  .page-btn { min-width: 24px; height: 24px; font-size: 11px; }
+}
+
+/* 640px — small tablets */
+@media (max-width: 640px) {
+  .ext-links { display: none; }
+  .header-right { flex-wrap: nowrap; }
+}
+
+/* 768px — tablets */
+@media (max-width: 768px) {
+  .header { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .brand { min-width: auto; }
+  .brand-sub { display: none; }
+
+  .stats { grid-template-columns: repeat(3, 1fr); }
+
+  .subnav { padding: 0 8px; }
+  .tab { padding: 0 8px; font-size: 12px; }
+  .chain-group { display: none; }
+
+  .filters { padding: 0 8px; gap: 6px; }
+  .filter-label { display: none; }
+
+  table.pairs th,
+  table.pairs td { padding: 8px 8px; }
+  .token-cell { min-width: 160px; }
+}
+
+/* 980px — small desktops */
+@media (max-width: 980px) {
+  .header-right .ext-links a:not(:first-child) { display: none; }
+  .stats { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ── Filter toggle (mobile) ──────────────── */
+
+/* Hidden on desktop */
+@media (min-width: 481px) {
+  .filters-trigger { display: none; }
+}
+
+.filters-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line, #243049);
+  background: var(--bg-2, #121826);
+  color: var(--text-dim, #9aa8c7);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.filters-trigger:hover {
+  background: var(--bg-hover, #1c2740);
+  color: var(--text, #e8eefc);
+}
+
+/* Base layout for filter content (always flex) */
+.filters-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.filters-content .meta-live {
+  margin-left: auto;
+}
+.filters-collapsed .filters-content {
+  display: none;
+}
+
+/* On mobile: tighter gaps */
+@media (max-width: 480px) {
+  .filters-content { gap: 4px; width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "robinhood-pair-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Early/new pair token tracker for Robinhood Chain (L2) Mainnet",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@privy-io/react-auth": "^3.35.0",
+    "@reown/appkit": "^1.8.22",
+    "@reown/appkit-adapter-wagmi": "^1.8.22",
+    "@tanstack/react-query": "^5.101.2",
+    "@upstash/redis": "^1.34.0",
+    "next": "^14.2.33",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "viem": "^2.55.2",
+    "wagmi": "^3.7.1",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "jsdom": "^29.1.1",
+    "typescript": "^5.5.3",
+    "vitest": "^4.1.10"
+  }
+}

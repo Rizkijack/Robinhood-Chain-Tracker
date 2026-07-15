@@ -1,0 +1,338 @@
+/* ── Table Wrapper (full-width) ──────────── */
+.table-wrap {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(61,139,253,0.03), transparent 120px),
+    var(--bg-0);
+  overflow: hidden;
+  width: 100%;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Table ────────────────────────────────── */
+table.pairs {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 1180px;
+}
+
+table.pairs thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+table.pairs th {
+  background: rgba(10, 14, 21, 0.96);
+  backdrop-filter: blur(8px);
+  color: var(--text-mute);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  user-select: none;
+}
+
+th.num, td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+th.center, td.center {
+  text-align: center;
+}
+
+table.pairs tbody tr {
+  cursor: pointer;
+  transition: background .12s;
+}
+
+table.pairs tbody tr:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+table.pairs tbody tr.selected {
+  background: var(--accent-soft);
+}
+
+table.pairs tbody tr.selected td {
+  border-color: rgba(61,139,253,0.12);
+}
+
+table.pairs td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* ── Token Cell ──────────────────────────── */
+.token-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.token-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 11px;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+.token-icon.placeholder {
+  display: grid;
+  place-items: center;
+}
+
+.token-meta {
+  min-width: 0;
+}
+
+.token-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.token-sym {
+  color: var(--text);
+}
+
+.token-pair {
+  color: var(--text-mute);
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+/* ── Badges ──────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-new {
+  background: rgba(34,211,238,0.12);
+  color: var(--cyan);
+}
+
+.badge-hot {
+  background: rgba(245,158,11,0.14);
+  color: var(--amber);
+}
+
+.badge-risk {
+  background: var(--red-soft);
+  color: #fca5a5;
+}
+
+/* ── Chain Tag ───────────────────────────── */
+.chain-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.chain-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* ── Data Cells ──────────────────────────── */
+.mono {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.up {
+  color: var(--green);
+}
+
+.down {
+  color: var(--red);
+}
+
+.muted {
+  color: var(--text-mute);
+}
+
+/* ── Sparkline ───────────────────────────── */
+.spark {
+  width: 88px;
+  height: 28px;
+  display: block;
+}
+
+/* ── Volume Bar ──────────────────────────── */
+.bar {
+  width: 72px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-3);
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+.bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #22d3ee);
+}
+
+/* ── Price Cell ──────────────────────────── */
+.price-cell {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Numeric Cell ────────────────────────── */
+.num-cell {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Age Cell ────────────────────────────── */
+.age {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.age.fresh {
+  color: var(--green);
+}
+
+.age.hot {
+  color: var(--amber);
+}
+
+/* ── DEX Tag ─────────────────────────────── */
+.dex-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* ── Source Badges ───────────────────────── */
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-width: 140px;
+}
+
+.badge-dex {
+  background: rgba(77, 163, 255, 0.12);
+  color: var(--accent);
+}
+
+.badge-profile {
+  background: rgba(167, 139, 250, 0.12);
+  color: var(--purple);
+}
+
+.badge-boost {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--amber);
+}
+
+.badge-birdeye {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.badge-gecko {
+  background: rgba(0, 211, 149, 0.14);
+  color: #00d395;
+}
+
+.badge-cg {
+  background: rgba(111, 123, 247, 0.16);
+  color: #8a93ff;
+}
+
+.badge-cmc {
+  background: rgba(34, 189, 133, 0.16);
+  color: #2ebd85;
+}
+
+/* ── Boost Indicator ─────────────────────── */
+.boost-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--amber);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ── Row Actions ─────────────────────────── */
+.row-actions {
+  display: flex;
+  gap: 3px;
+  flex-wrap: nowrap;
+}
+
+.row-actions a,
+.row-actions button {
+  padding: 3px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--bg-0);
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all .12s;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.row-actions a:hover,
+.row-actions button:hover {
+  color: var(--text-dim);
+  border-color: #314365;
+  background: var(--bg-hover);
+}

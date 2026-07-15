@@ -1,0 +1,20 @@
+{
+  "name": "Robinhood Pair Tracker",
+  "short_name": "RH Tracker",
+  "description": "Track early/new pair tokens on Robinhood Chain via GeckoTerminal, DexScreener, Birdeye and major DEXes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07090d",
+  "theme_color": "#0c1017",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "cryptocurrency", "utilities"],
+  "lang": "en"
+}
