@@ -7,7 +7,7 @@ import { shortenAddress } from "@/lib/wallet";
 const REOWN_ENABLED = Boolean(process.env.NEXT_PUBLIC_REOWN_PROJECT_ID);
 const PRIVY_ENABLED = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
 
-export function KonekWallet() {
+export function ConnectWallet() {
   const {
     address,
     via,
@@ -34,21 +34,21 @@ export function KonekWallet() {
   if (status === "connected" && address) {
     const explorerUrl = `${WALLET_EXPLORER_BASE}${address}`;
     return (
-      <div className="konek-wrap" ref={wrapRef}>
+      <div className="connect-wrap" ref={wrapRef}>
         <button
           type="button"
-          className="btn konek-pill"
+          className="btn connect-pill"
           onClick={() => setMenuOpen((v) => !v)}
         >
-          <span className="konek-dot" />
+          <span className="connect-dot" />
           {shortenAddress(address)}
-          {via ? <span className="konek-badge">{via === "privy" ? "Privy" : "RH"}</span> : null}
+          {via ? <span className="connect-badge">{via === "privy" ? "Privy" : "RH"}</span> : null}
         </button>
         {menuOpen && (
-          <div className="konek-menu">
+          <div className="connect-menu">
             <button
               type="button"
-              className="konek-menu-item"
+              className="connect-menu-item"
               onClick={() => {
                 navigator.clipboard?.writeText(address);
                 setMenuOpen(false);
@@ -57,7 +57,7 @@ export function KonekWallet() {
               Salin address
             </button>
             <a
-              className="konek-menu-item"
+              className="connect-menu-item"
               href={explorerUrl}
               target="_blank"
               rel="noreferrer"
@@ -67,7 +67,7 @@ export function KonekWallet() {
             </a>
             <button
               type="button"
-              className="konek-menu-item konek-danger"
+              className="connect-menu-item connect-danger"
               onClick={() => {
                 disconnect();
                 setMenuOpen(false);
@@ -85,20 +85,20 @@ export function KonekWallet() {
   const anyEnabled = REOWN_ENABLED || PRIVY_ENABLED;
 
   return (
-    <div className="konek-wrap" ref={wrapRef}>
+    <div className="connect-wrap" ref={wrapRef}>
       <button
         type="button"
-        className="btn btn-primary konek-btn"
+        className="btn btn-primary connect-btn"
         onClick={() => setMenuOpen((v) => !v)}
       >
         <WalletIcon />
-        Konek Wallet
+        Connect Wallet
       </button>
 
       {menuOpen && (
-        <div className="konek-menu konek-chooser">
+        <div className="connect-menu connect-chooser">
           {!anyEnabled && (
-            <div className="konek-note">
+            <div className="connect-note">
               Wallet providers belum dikonfigurasi. Isi{" "}
               <code>NEXT_PUBLIC_REOWN_PROJECT_ID</code> /{" "}
               <code>NEXT_PUBLIC_PRIVY_APP_ID</code>.
@@ -108,7 +108,7 @@ export function KonekWallet() {
           {REOWN_ENABLED && (
             <button
               type="button"
-              className="konek-menu-item konek-choice"
+              className="connect-menu-item connect-choice"
               onClick={() => {
                 setMenuOpen(false);
                 connectExternal();
@@ -125,7 +125,7 @@ export function KonekWallet() {
           {PRIVY_ENABLED && (
             <button
               type="button"
-              className="konek-menu-item konek-choice"
+              className="connect-menu-item connect-choice"
               onClick={() => {
                 setMenuOpen(false);
                 connectSocial();

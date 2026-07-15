@@ -3,7 +3,7 @@
 import { EXTERNAL_LINKS } from "@/lib/constants";
 import { useFeedStore, useFilterStore, useUiStore } from "@/lib/store";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { KonekWallet } from "./KonekWallet";
+import { ConnectWallet } from "./ConnectWallet";
 
 export function Header() {
   const { searchInput, setSearchInput, onSearchSubmit, tab, query, setTab } = useFilterStore();
@@ -81,7 +81,7 @@ export function Header() {
           Refresh
         </button>
         <ErrorBoundary fallback={<span className="muted" style={{fontSize:11}}>Wallet err</span>}>
-          <KonekWallet />
+          <ConnectWallet />
         </ErrorBoundary>
       </div>
     </header>

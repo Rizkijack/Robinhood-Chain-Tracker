@@ -1,5 +1,5 @@
-/* ── Konek Wallet ────────────────────── */
-.konek-wrap {
+/* ── Connect Wallet ────────────────────── */
+.connect-wrap {
   position: relative;
   display: inline-flex;
   flex-direction: column;
@@ -7,14 +7,14 @@
   gap: 4px;
 }
 
-.konek-btn {
+.connect-btn {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   height: 32px;
 }
 
-.konek-btn:disabled {
+.connect-btn:disabled {
   opacity: 0.7;
   cursor: default;
 }
@@ -29,7 +29,7 @@
   background: rgba(245, 158, 11, 0.22);
 }
 
-.konek-pill {
+.connect-pill {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -37,7 +37,7 @@
   font-family: var(--mono);
 }
 
-.konek-dot {
+.connect-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -45,7 +45,7 @@
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
 }
 
-.konek-err {
+.connect-err {
   font-size: 11px;
   color: var(--red);
   background: var(--red-soft);
@@ -56,7 +56,7 @@
   text-align: right;
 }
 
-.konek-menu {
+.connect-menu {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
@@ -73,7 +73,7 @@
   animation: fadeIn 0.12s ease;
 }
 
-.konek-menu-item {
+.connect-menu-item {
   text-align: left;
   padding: 8px 10px;
   border-radius: 7px;
@@ -81,20 +81,20 @@
   color: var(--text-dim);
   transition: background 0.12s, color 0.12s;
 }
-.konek-menu-item:hover {
+.connect-menu-item:hover {
   background: var(--bg-hover);
   color: var(--text);
 }
 
-.konek-danger {
+.connect-danger {
   color: var(--red);
 }
-.konek-danger:hover {
+.connect-danger:hover {
   background: var(--red-soft);
   color: var(--red);
 }
 
-.konek-badge {
+.connect-badge {
   font-size: 10px;
   font-family: var(--font);
   text-transform: uppercase;
@@ -106,47 +106,47 @@
 }
 
 /* ── Connect chooser ─────────────────── */
-.konek-chooser {
+.connect-chooser {
   min-width: 250px;
 }
 
-.konek-choice {
+.connect-choice {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 9px 10px;
 }
 
-.konek-choice svg {
+.connect-choice svg {
   color: var(--accent);
   flex-shrink: 0;
 }
 
-.konek-choice span {
+.connect-choice span {
   display: flex;
   flex-direction: column;
   line-height: 1.25;
 }
 
-.konek-choice strong {
+.connect-choice strong {
   font-size: 13px;
   color: var(--text);
   font-weight: 600;
 }
 
-.konek-choice small {
+.connect-choice small {
   font-size: 11px;
   color: var(--text-mute);
 }
 
-.konek-note {
+.connect-note {
   font-size: 11px;
   color: var(--text-mute);
   padding: 8px 10px;
   line-height: 1.5;
 }
 
-.konek-note code {
+.connect-note code {
   font-family: var(--mono);
   font-size: 10px;
   color: var(--text-dim);

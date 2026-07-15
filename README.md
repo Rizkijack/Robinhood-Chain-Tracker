@@ -59,6 +59,25 @@ Open [http://localhost:3000](http://localhost:3000).
 - CoinMarketCap requires `COINMARKETCAP_API_KEY`; the source is silently skipped when unset.
 - This is **not financial advice**. Memecoins and brand-new pairs are extremely high risk.
 
+## Wallet Connection
+
+The application supports multiple wallet connection providers:
+
+### Setup
+1. Copy `.env.example` to `.env.local`
+2. Configure your wallet provider IDs:
+   - **Privy**: `NEXT_PUBLIC_PRIVY_APP_ID` (from [Privy Dashboard](https://dashboard.privy.io))
+   - **Reown**: `NEXT_PUBLIC_REOWN_PROJECT_ID` (from [Reown Dashboard](https://reown.com/dashboard))
+   - **WalletConnect**: `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (optional)
+
+### Features
+- Connect with external wallets (MetaMask, Rabby, WalletConnect) via Reown
+- Connect with embedded wallets (email, Google) via Privy
+- Responsive UI with dropdown menu
+- Copy address and view in explorer functionality
+
+For detailed setup instructions, see [WALLET_SETUP.md](WALLET_SETUP.md).
+
 ## Production
 
 ```bash
@@ -75,4 +94,7 @@ npm start
 | `BIRDEYE_BASE_URL` | Birdeye base URL (default: `public-api.birdeye.so`) | `https://public-api.birdeye.so` |
 | `COINMARKETCAP_API_KEY` | CoinMarketCap API key. Leave empty to disable the source. | `abc123...` |
 | `COINGECKO_PLATFORM` | Optional CoinGecko on-chain platform id (Robinhood not indexed today) | `robinhood-chain` |
+| `NEXT_PUBLIC_PRIVY_APP_ID` | Privy App ID for embedded wallet connections | `app_abc123...` |
+| `NEXT_PUBLIC_REOWN_PROJECT_ID` | Reown Project ID for external wallet connections | `project_abc123...` |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | WalletConnect Project ID (optional) | `wc_abc123...` |
 |
