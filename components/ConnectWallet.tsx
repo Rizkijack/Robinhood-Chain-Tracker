@@ -8,19 +8,11 @@ import { shortenAddress } from "@/lib/wallet";
 const PRIVY_ENABLED = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
 const REOWN_ENABLED = Boolean(process.env.NEXT_PUBLIC_REOWN_PROJECT_ID);
 
-// Try to import Privy hooks if available
-let usePrivy: any = () => ({});
-let useWallets: any = () => ({ wallets: [] });
+// Statically import Privy hooks (safe — only invoked when PRIVY_ENABLED,
+// which is exactly when <PrivyProvider> is mounted in WalletProviders).
+import { usePrivy as _usePrivy, useWallets as _useWallets } from "@privy-io/react-auth";
 
-if (PRIVY_ENABLED) {
-  try {
-    const privyModule = require("@privy-io/react-auth");
-    usePrivy = privyModule.usePrivy;
-    useWallets = privyModule.useWallets;
-  } catch (error) {
-    console.warn("Privy not available:", error);
-  }
-}
+type Toast = { kind: "success" | "error" | "info"; msg: string } | null;
 
 export const WALLET_EXPLORER_BASE = "https://explorer.robinhood.com/address/";
 
@@ -29,13 +21,35 @@ export function ConnectWallet() {
   const { address: wagmiAddress, status: wagmiStatus } = useAccount();
   const { connectors, connectAsync } = useConnect();
   const { disconnectAsync } = useDisconnect();
-  
-  // Privy hooks
-  const { login: privyLogin, authenticated: privyAuthenticated, logout: privyLogout } = usePrivy();
-  const { wallets: privyWallets } = useWallets();
-  
+
+  // Privy hooks (only meaningful when PRIVY_ENABLED / provider mounted)
+  const privy = PRIVY_ENABLED ? _usePrivy() : ({} as any);
+  const privyWalletsResp = PRIVY_ENABLED ? _useWallets() : ({} as any);
+  const privyLogin = privy.login;
+  const privyAuthenticated = privy.authenticated;
+  const privyLogout = privy.logout;
+  const privyWallets = privyWalletsResp.wallets ?? [];
+
   const [menuOpen, setMenuOpen] = useState(false);
+  const [toast, setToast] = useState<Toast>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const wasAuthenticated = useRef(false);
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // Show a confirmation toast once Privy login completes
+  useEffect(() => {
+    if (PRIVY_ENABLED && privyAuthenticated && !wasAuthenticated.current) {
+      wasAuthenticated.current = true;
+      setToast({ kind: "success", msg: "Berhasil terhubung via Privy (email/Google)." });
+    }
+    if (!privyAuthenticated) wasAuthenticated.current = false;
+  }, [PRIVY_ENABLED, privyAuthenticated]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -49,13 +63,13 @@ export function ConnectWallet() {
   }, [menuOpen]);
 
   // Calculate derived state
-  const privyAddress = privyAuthenticated && privyWallets.length > 0 
-    ? privyWallets[0].address 
+  const privyAddress = privyAuthenticated && privyWallets.length > 0
+    ? privyWallets[0].address
     : null;
-  
+
   const address = privyAddress || wagmiAddress || null;
   const via = privyAddress ? "privy" : (wagmiAddress ? "reown" : null);
-  
+
   let status: "connected" | "disconnected" | "connecting" | "reconnecting";
   if (address) {
     status = "connected";
@@ -76,14 +90,20 @@ export function ConnectWallet() {
   };
 
   const connectSocial = async () => {
+    if (!PRIVY_ENABLED || typeof privyLogin !== "function") {
+      setToast({
+        kind: "error",
+        msg: "Privy belum terkonfigurasi. Cek NEXT_PUBLIC_PRIVY_APP_ID & dashboard Privy.",
+      });
+      return;
+    }
     try {
-      if (PRIVY_ENABLED && privyLogin) {
-        await privyLogin();
-      } else {
-        console.warn("Privy not available for social login");
-      }
-    } catch (error) {
+      setToast({ kind: "info", msg: "Membuka jendela login Privy…" });
+      await privyLogin();
+    } catch (error: any) {
       console.error("Social login failed:", error);
+      const reason = error?.message ? ` (${error.message})` : "";
+      setToast({ kind: "error", msg: `Login Privy gagal${reason}` });
     }
   };
 
@@ -91,6 +111,7 @@ export function ConnectWallet() {
     try {
       if (privyAddress && privyLogout) {
         await privyLogout();
+        setToast({ kind: "info", msg: "Sesi Privy diputus." });
       } else if (wagmiAddress) {
         await disconnectAsync();
       }
@@ -207,6 +228,21 @@ export function ConnectWallet() {
               </span>
             </button>
           )}
+        </div>
+      )}
+
+      {toast && (
+        <div className={`wallet-toast ${toast.kind}`} role="status" aria-live="polite">
+          <span className="toast-dot" />
+          <span>{toast.msg}</span>
+          <button
+            type="button"
+            className="toast-close"
+            aria-label="Tutup"
+            onClick={() => setToast(null)}
+          >
+            ×
+          </button>
         </div>
       )}
     </div>
