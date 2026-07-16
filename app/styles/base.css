@@ -58,15 +58,15 @@
 
 /* Wider gutter on large screens */
 @media (min-width: 1280px) {
-  :root { --gutter: 24px; }
+  :root { --gutter: 20px; }
 }
 
 * { box-sizing: border-box; }
 
-/* ── Centered content container (redesign) ── */
+/* ── Full-width content container ── */
 .container {
   width: 100%;
-  max-width: var(--content-max);
+  max-width: 100%;
   margin: 0 auto;
   padding: 0 var(--gutter);
 }

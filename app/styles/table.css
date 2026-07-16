@@ -21,7 +21,7 @@ table.pairs {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  min-width: 1180px;
+  min-width: 960px;
 }
 
 table.pairs thead {
@@ -244,8 +244,8 @@ table.pairs td {
 /* ── Price Cell ──────────────────────────── */
 .price-cell {
   font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
@@ -253,7 +253,7 @@ table.pairs td {
 /* ── Numeric Cell ────────────────────────── */
 .num-cell {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
