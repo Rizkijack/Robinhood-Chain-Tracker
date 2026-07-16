@@ -153,6 +153,45 @@
 .dchart {
   margin-top: 4px;
 }
+
+/* Chart source switcher */
+.chart-src {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-0);
+  flex-wrap: wrap;
+}
+.chart-src button {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  color: var(--text-mute);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background .12s, color .12s;
+}
+.chart-src button:hover {
+  color: var(--text);
+}
+.chart-src button.active {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.chart-open {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-mute);
+  line-height: 1.5;
+}
+.chart-open a {
+  color: var(--accent);
+  font-weight: 600;
+}
 .chart-wrap {
   position: relative;
   background: var(--bg-2);

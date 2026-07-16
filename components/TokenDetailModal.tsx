@@ -57,6 +57,9 @@ export function TokenDetailModal({
   const [detail, setDetail] = useState<TokenDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [chartSource, setChartSource] = useState<
+    "custom" | "gecko" | "birdeye" | "dexscreener"
+  >("gecko");
 
   const address = pair.tokenAddress || pair.pairAddress;
   const dexUrl = `https://dexscreener.com/${CHAIN.id}/${pair.pairAddress || pair.tokenAddress}`;
@@ -110,6 +113,18 @@ export function TokenDetailModal({
   const ohlcv = detail?.ohlcv ?? null;
   const showCustomChart = !!ohlcv && ohlcv.length >= 2;
   const iframeUrl = `https://www.geckoterminal.com/${CHAIN.id}/tokens/${address}?embed=1&info=0&swaps=0`;
+  const birdeyeUrl = `https://birdeye.so/token/${address}?chain=robinhood&embed=1`;
+
+  // Resolve which chart view to actually render (fall back to GeckoTerminal
+  // embed if the user picked "custom" but we have no OHLCV data).
+  const effectiveSource =
+    chartSource === "custom" && !showCustomChart ? "gecko" : chartSource;
+  const chartEmbedUrl =
+    effectiveSource === "birdeye"
+      ? birdeyeUrl
+      : effectiveSource === "dexscreener"
+        ? dexUrl
+        : iframeUrl;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -185,19 +200,73 @@ export function TokenDetailModal({
 
         <section className="dchart">
           <div className="dsection-title">Price chart</div>
+          <div className="chart-src" role="tablist" aria-label="Chart source">
+            {showCustomChart && (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveSource === "custom"}
+                className={effectiveSource === "custom" ? "active" : ""}
+                onClick={() => setChartSource("custom")}
+              >
+                Custom
+              </button>
+            )}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={effectiveSource === "gecko"}
+              className={effectiveSource === "gecko" ? "active" : ""}
+              onClick={() => setChartSource("gecko")}
+            >
+              GeckoTerminal
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={effectiveSource === "birdeye"}
+              className={effectiveSource === "birdeye" ? "active" : ""}
+              onClick={() => setChartSource("birdeye")}
+            >
+              Birdeye
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={effectiveSource === "dexscreener"}
+              className={effectiveSource === "dexscreener" ? "active" : ""}
+              onClick={() => setChartSource("dexscreener")}
+            >
+              DexScreener
+            </button>
+          </div>
+
           {loading ? (
             <div className="loading"><div className="spinner" /> Loading token detail…</div>
-          ) : error && !showCustomChart ? (
-            <div className="error-box">{error}</div>
-          ) : showCustomChart ? (
+          ) : effectiveSource === "custom" ? (
             <PriceChart data={ohlcv as NonNullable<TokenDetail["ohlcv"]>} />
           ) : (
-            <iframe
-              className="chart-iframe"
-              src={iframeUrl}
-              title="Token chart"
-              loading="lazy"
-            />
+            <>
+              <iframe
+                className="chart-iframe"
+                src={chartEmbedUrl}
+                title="Token chart"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+              <div className="chart-open">
+                Tidak termuat di dalam halaman?{" "}
+                <a href={chartEmbedUrl} target="_blank" rel="noreferrer">
+                  Buka di{" "}
+                  {effectiveSource === "birdeye"
+                    ? "Birdeye"
+                    : effectiveSource === "dexscreener"
+                      ? "DexScreener"
+                      : "GeckoTerminal"}{" "}
+                  ↗
+                </a>
+              </div>
+            </>
           )}
         </section>
 
