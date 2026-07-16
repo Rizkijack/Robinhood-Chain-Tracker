@@ -292,10 +292,15 @@ export function PairTable({
                   <span className="mono">{formatUsd(p.volume1h)}</span>
                 </td>
                 <td className="num">
-                  <span className="mono">
-                    {p.txns1h != null
-                      ? `${p.txns1h}${p.buys1h != null ? ` (${p.buys1h}↑/${p.sells1h ?? 0}↓)` : ""}`
-                      : "—"}
+                  <span
+                    className="mono"
+                    title={
+                      p.buys1h != null || p.sells1h != null
+                        ? `${p.buys1h ?? 0} buys ↑ / ${p.sells1h ?? 0} sells ↓`
+                        : undefined
+                    }
+                  >
+                    {p.txns1h != null ? p.txns1h : "—"}
                   </span>
                 </td>
                 <td className="num">
@@ -308,27 +313,27 @@ export function PairTable({
                 </td>
                 <td>
                   <div
-                    className="row-actions"
+                    className="row-actions links-compact"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <a href={p.links.dexscreener} target="_blank" rel="noreferrer">
+                    <a href={p.links.dexscreener} target="_blank" rel="noreferrer" title="DexScreener">
                       DexS
                     </a>
-                    <a href={p.links.birdeye} target="_blank" rel="noreferrer">
-                      Birdeye
+                    <a href={p.links.birdeye} target="_blank" rel="noreferrer" title="Birdeye">
+                      Bird
                     </a>
                     {p.links.geckoterminal ? (
-                      <a href={p.links.geckoterminal} target="_blank" rel="noreferrer">
+                      <a href={p.links.geckoterminal} target="_blank" rel="noreferrer" title="GeckoTerminal">
                         Geo
                       </a>
                     ) : null}
                     {p.links.coingecko ? (
-                      <a href={p.links.coingecko} target="_blank" rel="noreferrer">
+                      <a href={p.links.coingecko} target="_blank" rel="noreferrer" title="CoinGecko">
                         CG
                       </a>
                     ) : null}
                     {p.links.coinmarketcap ? (
-                      <a href={p.links.coinmarketcap} target="_blank" rel="noreferrer">
+                      <a href={p.links.coinmarketcap} target="_blank" rel="noreferrer" title="CoinMarketCap">
                         CMC
                       </a>
                     ) : null}
