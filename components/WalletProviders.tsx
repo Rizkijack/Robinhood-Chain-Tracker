@@ -83,3 +83,6 @@ export function WalletProviders({ children }: { children: ReactNode }) {
     </PrivyProvider>
   );
 }
+
+// Re-export WalletContext for convenience
+export { WalletContextProvider, useWalletContext, useWalletBalance, useWalletConnection } from "./WalletContext";
