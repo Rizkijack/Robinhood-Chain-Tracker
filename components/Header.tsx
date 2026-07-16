@@ -26,63 +26,64 @@ export function Header() {
 
   return (
     <header className="header">
-      <div className="brand">
-        <div className="brand-mark" aria-hidden="true" />
-        <div>
-          <div className="brand-name">
-            Robinhood<span>Tracker</span>
+      <div className="container header-inner">
+        <div className="brand">
+          <div className="brand-mark" aria-hidden="true" />
+          <div>
+            <div className="brand-name">
+              Robinhood<span>Tracker</span>
+            </div>
+            <div className="brand-sub">RH Chain · ID 4663</div>
           </div>
-          <div className="brand-sub">RH Chain · ID 4663</div>
         </div>
-      </div>
 
-      <form className="search-wrap" onSubmit={handleSearchSubmit}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="7" />
-          <path d="M20 20l-3.5-3.5" />
-        </svg>
-        <input
-          className="search"
-          type="search"
-          placeholder="Cari token, pair, atau address..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          autoComplete="off"
-        />
-      </form>
+        <form className="search-wrap" onSubmit={handleSearchSubmit}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-3.5-3.5" />
+          </svg>
+          <input
+            className="search"
+            type="search"
+            placeholder="Cari token, pair, atau address..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            autoComplete="off"
+          />
+        </form>
 
-      <div className="header-right">
-        <div className="pill live-pill">
-          <span className="dot" /> Live
+        <div className="header-right">
+          <div className="ext-links">
+            <a href={EXTERNAL_LINKS.dexscreenerNew} target="_blank" rel="noreferrer">
+              New Pairs
+            </a>
+            <a href={EXTERNAL_LINKS.birdeye} target="_blank" rel="noreferrer">
+              Birdeye
+            </a>
+            <a href={EXTERNAL_LINKS.robinhoodChain} target="_blank" rel="noreferrer">
+              RH Chain
+            </a>
+          </div>
+          <button
+            type="button"
+            className={`btn live-toggle ${autoRefresh ? "is-live" : "is-paused"}`}
+            onClick={toggleAutoRefresh}
+            aria-pressed={autoRefresh}
+          >
+            <span className="dot" />
+            {autoRefresh ? "Live" : "Paused"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleRefresh}
+          >
+            Refresh
+          </button>
+          <ErrorBoundary fallback={<span className="muted" style={{fontSize:11}}>Wallet err</span>}>
+            <ConnectWallet />
+          </ErrorBoundary>
         </div>
-        <div className="ext-links">
-          <a href={EXTERNAL_LINKS.dexscreenerNew} target="_blank" rel="noreferrer">
-            New Pairs
-          </a>
-          <a href={EXTERNAL_LINKS.birdeye} target="_blank" rel="noreferrer">
-            Birdeye
-          </a>
-          <a href={EXTERNAL_LINKS.robinhoodChain} target="_blank" rel="noreferrer">
-            RH Chain
-          </a>
-        </div>
-        <button
-          type="button"
-          className="btn"
-          onClick={toggleAutoRefresh}
-        >
-          {autoRefresh ? "● Live" : "○ Paused"}
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={handleRefresh}
-        >
-          Refresh
-        </button>
-        <ErrorBoundary fallback={<span className="muted" style={{fontSize:11}}>Wallet err</span>}>
-          <ConnectWallet />
-        </ErrorBoundary>
       </div>
     </header>
   );

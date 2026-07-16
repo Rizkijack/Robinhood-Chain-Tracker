@@ -19,7 +19,36 @@
   --amber: #f59e0b;
   --purple: #a78bfa;
   --cyan: #22d3ee;
-  --radius: 10px;
+
+  /* ── Layout / spacing (redesign) ── */
+  --content-max: 1320px;
+  --gutter: 16px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+
+  /* ── Elevation (Birdeye-style soft shadows) ── */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.18);
+  --shadow-2: 0 12px 40px rgba(0, 0, 0, 0.45);
+
+  /* ── Panels ── */
+  --panel: var(--bg-1);
+  --panel-2: var(--bg-2);
+
+  /* ── Source badge tokens (replaces hard-coded hexes) ── */
+  --src-dex: #4da3ff;       --src-dex-bg: rgba(77, 163, 255, 0.12);
+  --src-profile: #a78bfa;   --src-profile-bg: rgba(167, 139, 250, 0.12);
+  --src-boost: #f59e0b;     --src-boost-bg: rgba(245, 158, 11, 0.15);
+  --src-birdeye: #fbbf24;   --src-birdeye-bg: rgba(245, 158, 11, 0.18);
+  --src-gecko: #00d395;     --src-gecko-bg: rgba(0, 211, 149, 0.14);
+  --src-cg: #8a93ff;        --src-cg-bg: rgba(111, 123, 247, 0.16);
+  --src-cmc: #2ebd85;       --src-cmc-bg: rgba(34, 189, 133, 0.16);
+
+  --radius: 12px;
+  --radius-sm: 8px;
   --font: var(--font-inter), "Segoe UI", system-ui, -apple-system, sans-serif;
   --mono: var(--font-mono), "Cascadia Code", "SF Mono", Consolas, "Courier New", monospace;
   --header-h: 56px;
@@ -27,7 +56,21 @@
   --filter-h: 52px;
 }
 
+/* Wider gutter on large screens */
+@media (min-width: 1280px) {
+  :root { --gutter: 24px; }
+}
+
 * { box-sizing: border-box; }
+
+/* ── Centered content container (redesign) ── */
+.container {
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
 html, body {
   margin: 0;
   padding: 0;

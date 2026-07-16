@@ -1,12 +1,14 @@
-/* ── Table Wrapper (full-width) ──────────── */
+/* ── Table Wrapper (card panel) ─────────── */
 .table-wrap {
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   background:
     linear-gradient(180deg, rgba(61,139,253,0.03), transparent 120px),
-    var(--bg-0);
+    var(--bg-1);
+  box-shadow: var(--shadow-1);
   overflow: hidden;
   width: 100%;
+  margin-bottom: var(--sp-4);
 }
 
 .table-scroll {
@@ -29,7 +31,7 @@ table.pairs thead {
 }
 
 table.pairs th {
-  background: rgba(10, 14, 21, 0.96);
+  background: rgba(10, 14, 21, 0.98);
   backdrop-filter: blur(8px);
   color: var(--text-mute);
   font-size: 11px;
@@ -37,7 +39,7 @@ table.pairs th {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: left;
-  padding: 10px 12px;
+  padding: 11px 14px;
   border-bottom: 1px solid var(--line);
   white-space: nowrap;
   user-select: none;
@@ -52,13 +54,18 @@ th.center, td.center {
   text-align: center;
 }
 
+/* Zebra striping (DexScreener density) */
+table.pairs tbody tr:nth-child(even) {
+  background: rgba(255,255,255,0.015);
+}
+
 table.pairs tbody tr {
   cursor: pointer;
   transition: background .12s;
 }
 
 table.pairs tbody tr:hover {
-  background: rgba(255,255,255,0.02);
+  background: var(--bg-hover);
 }
 
 table.pairs tbody tr.selected {
@@ -70,7 +77,7 @@ table.pairs tbody tr.selected td {
 }
 
 table.pairs td {
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--line-soft);
   vertical-align: middle;
   white-space: nowrap;
@@ -183,6 +190,32 @@ table.pairs td {
   color: var(--text-mute);
 }
 
+/* ── % Change pills (DexScreener-style) ──── */
+.pct {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 58px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pct.up {
+  color: var(--green);
+  background: var(--green-soft);
+}
+.pct.down {
+  color: var(--red);
+  background: var(--red-soft);
+}
+.pct.flat {
+  color: var(--text-mute);
+  background: rgba(255,255,255,0.04);
+}
+
 /* ── Sparkline ───────────────────────────── */
 .spark {
   width: 88px;
@@ -262,38 +295,38 @@ table.pairs td {
 }
 
 .badge-dex {
-  background: rgba(77, 163, 255, 0.12);
-  color: var(--accent);
+  background: var(--src-dex-bg);
+  color: var(--src-dex);
 }
 
 .badge-profile {
-  background: rgba(167, 139, 250, 0.12);
-  color: var(--purple);
+  background: var(--src-profile-bg);
+  color: var(--src-profile);
 }
 
 .badge-boost {
-  background: rgba(245, 158, 11, 0.15);
-  color: var(--amber);
+  background: var(--src-boost-bg);
+  color: var(--src-boost);
 }
 
 .badge-birdeye {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fbbf24;
+  background: var(--src-birdeye-bg);
+  color: var(--src-birdeye);
 }
 
 .badge-gecko {
-  background: rgba(0, 211, 149, 0.14);
-  color: #00d395;
+  background: var(--src-gecko-bg);
+  color: var(--src-gecko);
 }
 
 .badge-cg {
-  background: rgba(111, 123, 247, 0.16);
-  color: #8a93ff;
+  background: var(--src-cg-bg);
+  color: var(--src-cg);
 }
 
 .badge-cmc {
-  background: rgba(34, 189, 133, 0.16);
-  color: #2ebd85;
+  background: var(--src-cmc-bg);
+  color: var(--src-cmc);
 }
 
 /* ── Boost Indicator ─────────────────────── */
@@ -335,4 +368,82 @@ table.pairs td {
   color: var(--text-dim);
   border-color: #314365;
   background: var(--bg-hover);
+}
+
+/* ── Pagination Bar ────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12px;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+}
+
+.pagination .pg-summary strong {
+  color: var(--text);
+}
+
+.pagination nav[aria-label="Pagination"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination .pg-rows {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination .pg-rows .selectish {
+  height: 28px;
+  font-size: 12px;
+}
+
+.page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--bg-3);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.page-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.page-btn-active {
+  background: var(--accent-soft) !important;
+  border-color: rgba(61,139,253,0.25) !important;
+  color: var(--accent) !important;
+}
+
+.page-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.pg-ellipsis {
+  padding: 0 4px;
+  color: var(--text-mute);
 }

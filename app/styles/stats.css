@@ -1,21 +1,27 @@
-/* ── Stats Bar ────────────────────────────── */
+/* ── Stats Bar (summary panel) ───────────── */
 .stats {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-3);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
 }
 
 .stat-card {
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
-  transition: border-color .15s;
+  transition: border-color .15s, transform .15s;
 }
 
 .stat-card:hover {
   border-color: #314365;
+  transform: translateY(-1px);
 }
 
 .stat-card .label {

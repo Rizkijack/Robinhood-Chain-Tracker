@@ -1,7 +1,7 @@
 /* ── Footer ──────────────────────────────── */
 .footer {
-  margin-top: 24px;
-  padding: 16px 0;
+  margin-top: var(--sp-4);
+  padding: var(--sp-5) 0;
   border-top: 1px solid var(--line-soft);
   color: var(--text-mute);
   font-size: 11px;

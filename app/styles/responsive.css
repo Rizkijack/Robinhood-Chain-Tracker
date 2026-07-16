@@ -2,10 +2,11 @@
 
 /* 480px — small phones */
 @media (max-width: 480px) {
-  .header {
+  .header-inner {
     flex-wrap: wrap;
     gap: 6px;
-    padding: 8px 8px;
+    padding-top: 8px;
+    padding-bottom: 8px;
     height: auto;
   }
 
@@ -17,11 +18,10 @@
   .search { height: 32px; font-size: 13px; }
 
   .header-right { gap: 4px; }
-  .header-right .pill:not(.live-pill) { display: none; }
   .ext-links { display: none; }
   .header-right .btn { padding: 0 8px; font-size: 11px; height: 28px; }
-  .live-pill { font-size: 10px; height: 26px; padding: 0 6px; }
-  .live-pill .dot { width: 5px; height: 5px; }
+  .live-toggle { font-size: 10px; height: 26px; padding: 0 6px; }
+  .live-toggle .dot { width: 5px; height: 5px; }
 
   .stats { grid-template-columns: repeat(3, 1fr); gap: 4px; }
   .stat-card { padding: 6px 8px; }
@@ -63,8 +63,6 @@
 
 /* 768px — tablets */
 @media (max-width: 768px) {
-  .header { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
-  .brand { min-width: auto; }
   .brand-sub { display: none; }
 
   .stats { grid-template-columns: repeat(3, 1fr); }

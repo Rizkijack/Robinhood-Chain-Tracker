@@ -14,9 +14,9 @@ import { SourceBadges } from "./SourceBadges";
 const ROWS_OPTIONS = [25, 50, 100] as const;
 
 function Pct({ value }: { value: number | null }) {
-  if (value == null) return <span className="muted mono">—</span>;
+  if (value == null) return <span className="pct flat">—</span>;
   const cls =
-    value > 0 ? "mono up" : value < 0 ? "mono down" : "mono muted";
+    value > 0 ? "pct up" : value < 0 ? "pct down" : "pct flat";
   return <span className={cls}>{formatPct(value)}</span>;
 }
 
@@ -59,32 +59,18 @@ function PaginationBar({
   const end = Math.min(page * rowsPerPage, totalItems);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-        padding: "10px 16px",
-        borderTop: "1px solid var(--line-soft, #1a2438)",
-        fontSize: 12,
-        color: "var(--text-dim, #9aa8c7)",
-        flexWrap: "wrap",
-      }}
-    >
-      <span>
-        Showing <strong style={{ color: "var(--text)" }}>{start}–{end}</strong> of{" "}
-        <strong style={{ color: "var(--text)" }}>{totalItems}</strong>
+    <div className="pagination">
+      <span className="pg-summary">
+        Showing <strong>{start}–{end}</strong> of <strong>{totalItems}</strong>
       </span>
 
-      <nav aria-label="Pagination" role="navigation" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      <nav aria-label="Pagination" role="navigation">
+        <label className="pg-rows">
           Rows:
           <select
             value={rowsPerPage}
             onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
             className="selectish"
-            style={{ height: 28, fontSize: 12 }}
           >
             {ROWS_OPTIONS.map((n) => (
               <option key={n} value={n}>{n}</option>
@@ -105,9 +91,7 @@ function PaginationBar({
 
           {generatePageNumbers(page, totalPages).map((p, i) =>
             p === "..." ? (
-              <span key={`e${i}`} style={{ padding: "0 4px", color: "var(--text-mute)" }}>
-                …
-              </span>
+              <span key={`e${i}`} className="pg-ellipsis">…</span>
             ) : (
               <button
                 key={p}
@@ -132,31 +116,6 @@ function PaginationBar({
           </button>
         </div>
       </nav>
-
-      <style>{`
-        .page-btn {
-          display: inline-flex; align-items: center; justify-content: center;
-          min-width: 28px; height: 28px; padding: 0 6px;
-          border-radius: 6px; border: 1px solid transparent;
-          background: transparent; color: var(--text-dim, #9aa8c7);
-          font-size: 13px; font-weight: 600; cursor: pointer;
-          transition: background 0.12s, border-color 0.12s, color 0.12s;
-        }
-        .page-btn:hover:not(:disabled) {
-          background: var(--bg-3, #182033); border-color: var(--line, #243049); color: var(--text);
-        }
-        .page-btn:disabled {
-          opacity: 0.3; cursor: default;
-        }
-        .page-btn-active {
-          background: var(--accent-soft, rgba(61,139,253,0.14)) !important;
-          border-color: rgba(61,139,253,0.25) !important;
-          color: var(--accent, #3d8bfd) !important;
-        }
-        .page-btn:focus-visible {
-          outline: 2px solid var(--accent, #3d8bfd); outline-offset: 1px;
-        }
-      `}</style>
     </div>
   );
 }

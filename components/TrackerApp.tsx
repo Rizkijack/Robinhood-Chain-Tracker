@@ -90,50 +90,52 @@ export function TrackerApp() {
         <Header />
       </ErrorBoundary>
 
-      <ErrorBoundary>
-        {loading && !feed ? (
-          <section className="stats">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <SkeletonStatCard key={i} />
-            ))}
-          </section>
-        ) : (
-          <StatsBar filteredCount={filtered.length} />
-        )}
-      </ErrorBoundary>
-
-      {!isSearchTab && (
+      <div className="container app-body">
         <ErrorBoundary>
-          <Controls
-            dexOptions={dexOptions}
-            filteredCount={filtered.length}
-          />
+          {loading && !feed ? (
+            <section className="stats">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <SkeletonStatCard key={i} />
+              ))}
+            </section>
+          ) : (
+            <StatsBar filteredCount={filtered.length} />
+          )}
         </ErrorBoundary>
-      )}
 
-      <ErrorBoundary>
-        <MetaInfo />
-      </ErrorBoundary>
-
-      {error ? <div className="error-box">{error}</div> : null}
-
-      <ErrorBoundary>
-        {loading && !feed ? (
-          <SkeletonTable rows={8} />
-        ) : (
-          <PairTable
-            pairs={filtered}
-            onSelect={setSelected}
-            emptyMessage={
-              isSearchTab && !query
-                ? "Type a symbol or address and press Enter to search DexScreener."
-                : "No pairs found. Try widening age/liquidity filters."
-            }
-          />
+        {!isSearchTab && (
+          <ErrorBoundary>
+            <Controls
+              dexOptions={dexOptions}
+              filteredCount={filtered.length}
+            />
+          </ErrorBoundary>
         )}
-      </ErrorBoundary>
 
-      <Footer />
+        <ErrorBoundary>
+          <MetaInfo />
+        </ErrorBoundary>
+
+        {error ? <div className="error-box">{error}</div> : null}
+
+        <ErrorBoundary>
+          {loading && !feed ? (
+            <SkeletonTable rows={8} />
+          ) : (
+            <PairTable
+              pairs={filtered}
+              onSelect={setSelected}
+              emptyMessage={
+                isSearchTab && !query
+                  ? "Type a symbol or address and press Enter to search DexScreener."
+                  : "No pairs found. Try widening age/liquidity filters."
+              }
+            />
+          )}
+        </ErrorBoundary>
+
+        <Footer />
+      </div>
 
       {selected && (
         <TokenDetailModal pair={selected} onClose={() => setSelected(null)} />

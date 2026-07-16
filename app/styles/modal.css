@@ -32,7 +32,7 @@
   background: var(--bg-1);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-2);
   padding: 18px 18px 22px;
   animation: fadeIn 0.18s ease;
 }
