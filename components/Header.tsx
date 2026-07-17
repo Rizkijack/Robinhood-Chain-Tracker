@@ -37,6 +37,14 @@ export function Header() {
           </div>
         </div>
 
+        <a href="/" className="home-btn" title="Kembali ke halaman utama" aria-label="Home">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          Home
+        </a>
+
         <form className="search-wrap" onSubmit={handleSearchSubmit}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="7" />

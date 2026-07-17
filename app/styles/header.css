@@ -54,6 +54,34 @@
   text-transform: uppercase;
 }
 
+/* ── Home Button ─────────────────────────── */
+.home-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-mute);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+
+.home-btn:hover {
+  color: var(--text-dim);
+  background: var(--bg-hover);
+  border-color: #314365;
+}
+
+.home-btn svg {
+  flex-shrink: 0;
+}
+
 /* ── Search Bar ─────────────────────────── */
 .search-wrap {
   flex: 1;
