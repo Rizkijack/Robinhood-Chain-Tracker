@@ -144,6 +144,14 @@ export async function getNewPairsFeed(): Promise<FeedResponse> {
   let pairs = mergeLists(profiles, boosts, beNew, geoNew);
   pairs = sortByNewest(pairs);
 
+  // Best-effort real-time price/market-cap enrichment from CoinGecko (uses
+  // COINGECKO_API_KEY when configured). Never breaks the feed on failure.
+  try {
+    pairs = await enrichRobinhoodWithCoinGecko(pairs);
+  } catch (e) {
+    errors.push({ source: "coingecko-enrich", message: String(e) });
+  }
+
   return {
     updatedAt: new Date().toISOString(),
     chain: {
@@ -157,6 +165,7 @@ export async function getNewPairsFeed(): Promise<FeedResponse> {
       "DexScreener boosts",
       "Birdeye new listings",
       "GeckoTerminal new pools",
+      "CoinGecko price enrichment (Robinhood tokens)",
     ],
     count: pairs.length,
     pairs,

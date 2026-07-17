@@ -1,8 +1,22 @@
 import { COINGECKO_BASE, SOURCE_TIMING } from "../constants";
-import { fetchJsonCached } from "./shared";
+import { env, fetchJsonCached } from "./shared";
 import type { TrackedPair } from "../types";
 
 const TTL = SOURCE_TIMING.coingecko.cacheTtlMs;
+
+/**
+ * Build CoinGecko auth headers from the configured API key (env var).
+ * - Demo keys (prefix "CG-")  -> header `x-cg-demo-api-key`
+ * - Pro keys (anything else)  -> header `x-cg-pro-api-key`
+ * When no key is set, the request falls back to the anonymous public tier
+ * (lower rate limits) so enrichment stays best-effort and never breaks.
+ */
+function cgAuthHeaders(): HeadersInit {
+  const key = env("COINGECKO_API_KEY");
+  if (!key) return {};
+  if (key.startsWith("CG-")) return { "x-cg-demo-api-key": key };
+  return { "x-cg-pro-api-key": key };
+}
 
 interface CgMarket {
   id?: string;
@@ -38,7 +52,11 @@ export async function enrichRobinhoodWithCoinGecko(
       `${COINGECKO_BASE}/coins/markets?vs_currency=usd&symbols=${symbols
         .join(",")
         .toLowerCase()}&per_page=250&page=1&sparkline=false`,
-      { cacheKey: `cg:markets:sym:${symbols.join(",").toLowerCase()}`, ttlMs: TTL }
+      {
+        cacheKey: `cg:markets:sym:${symbols.join(",").toLowerCase()}`,
+        ttlMs: TTL,
+        headers: cgAuthHeaders(),
+      }
     )) as CgMarket[];
 
     const bySymbol = new Map<string, CgMarket>();
