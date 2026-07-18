@@ -11,6 +11,7 @@ import {
   shortAddr,
 } from "@/lib/format";
 import { PriceChart } from "./PriceChart";
+import { UniswapSwapWidget } from "./UniswapSwapWidget";
 
 function Stat({
   label,
@@ -295,36 +296,7 @@ export function TokenDetailModal({
 
         <section className="dswap">
           <div className="dsection-title">Swap</div>
-          <a
-            className="swap-primary"
-            href={`https://app.uniswap.org/#/swap?outputCurrency=${address}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Swap on Uniswap ↗
-          </a>
-          <div className="swap-alt">
-            <span className="muted">Or swap via:</span>
-            <div className="row-actions">
-              <a
-                href={`https://app.uniswap.org/#/swap?outputCurrency=${address}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Uniswap
-              </a>
-              <a
-                href={`https://dexscreener.com/${CHAIN.id}/${pair.pairAddress || token.tokenAddress || address}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                DexScreener
-              </a>
-              <a href={iframeUrl} target="_blank" rel="noreferrer">
-                GeckoTerminal
-              </a>
-            </div>
-          </div>
+          <UniswapSwapWidget outputToken={address} />
           {detail?.pools && detail.pools.length > 0 ? (
             <div className="swap-dexes">
               <span className="muted">Liquidity on:</span>
@@ -343,8 +315,8 @@ export function TokenDetailModal({
             </div>
           ) : null}
           <p className="swap-note muted">
-            Uniswap doesn't route Robinhood Chain (4663) yet, so complete the
-            swap in their app or use a DEX above that holds this token's pool.
+            Swaps powered by Uniswap Protocol. Bridge and cross-chain routing
+            supported via Robinhood Chain (4663).
           </p>
         </section>
 
