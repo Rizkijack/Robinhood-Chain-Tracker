@@ -8,10 +8,12 @@ interface ControlsProps {
   filteredCount: number;
 }
 
-const TABS: { key: "new" | "trending" | "boosts"; label: string }[] = [
+const TABS: { key: "new" | "trending" | "boosts" | "portfolio" | "watchlist"; label: string; icon?: string }[] = [
   { key: "new", label: "New Pairs" },
   { key: "trending", label: "Trending" },
   { key: "boosts", label: "Boosts" },
+  { key: "watchlist", label: "★ Watchlist" },
+  { key: "portfolio", label: "Wallet" },
 ];
 
 export function Controls({ dexOptions, filteredCount }: ControlsProps) {
@@ -29,7 +31,8 @@ export function Controls({ dexOptions, filteredCount }: ControlsProps) {
   } = useFilterStore();
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const currentTab = tab as "new" | "trending" | "boosts";
+  const currentTab = tab as "new" | "trending" | "boosts" | "portfolio" | "watchlist";
+  const showFilters = !["portfolio", "watchlist", "search"].includes(tab);
 
   return (
     <div className="controls-wrap">
@@ -50,7 +53,8 @@ export function Controls({ dexOptions, filteredCount }: ControlsProps) {
         </div>
       </nav>
 
-      <div className={`filters ${!filtersOpen ? "filters-collapsed" : ""}`}>
+      {showFilters && (
+        <div className={`filters ${!filtersOpen ? "filters-collapsed" : ""}`}>
         <button
           type="button"
           className="filters-trigger"
@@ -122,6 +126,7 @@ export function Controls({ dexOptions, filteredCount }: ControlsProps) {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

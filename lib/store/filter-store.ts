@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type Tab = "new" | "trending" | "boosts" | "search";
+export type Tab = "new" | "trending" | "boosts" | "search" | "portfolio" | "watchlist";
 
 interface FilterState {
   tab: Tab;

@@ -11,7 +11,8 @@ import {
   shortAddr,
 } from "@/lib/format";
 import { PriceChart } from "./PriceChart";
-import { UniswapSwapWidget } from "./UniswapSwapWidget";
+import { DirectSwap } from "./DirectSwap";
+import { useWatchlist, WatchlistStar } from "./Watchlist";
 
 function Stat({
   label,
@@ -64,6 +65,7 @@ export function TokenDetailModal({
 
   const address = pair.tokenAddress || pair.pairAddress;
   const dexUrl = `https://dexscreener.com/${CHAIN.id}/${pair.pairAddress || pair.tokenAddress}`;
+  const { isWatched, toggle } = useWatchlist();
 
   useEffect(() => {
     let cancelled = false;
@@ -160,6 +162,7 @@ export function TokenDetailModal({
               {pair.boosted ? (
                 <span className="boost-indicator">⚡{pair.boostAmount ?? ""}</span>
               ) : null}
+              <WatchlistStar pair={pair} isWatched={isWatched(pair.tokenAddress)} onToggle={toggle} />
             </div>
             <div className="dhead-sub">{token.name}</div>
             <button
@@ -295,8 +298,11 @@ export function TokenDetailModal({
         ) : null}
 
         <section className="dswap">
-          <div className="dsection-title">Swap</div>
-          <UniswapSwapWidget outputToken={address} />
+          <DirectSwap
+            tokenAddress={address}
+            tokenSymbol={token.symbol}
+            tokenPriceUsd={token.priceUsd}
+          />
           {detail?.pools && detail.pools.length > 0 ? (
             <div className="swap-dexes">
               <span className="muted">Liquidity on:</span>

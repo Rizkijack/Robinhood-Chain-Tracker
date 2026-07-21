@@ -13,6 +13,8 @@ import { Controls } from "./Controls";
 import { MetaInfo } from "./MetaInfo";
 import { Footer } from "./Footer";
 import { PairTable } from "./PairTable";
+import { WalletPortfolio } from "./WalletPortfolio";
+import { WatchlistPanel, useWatchlist } from "./Watchlist";
 
 const TokenDetailModal = dynamic(
   () => import("./TokenDetailModal").then((m) => m.TokenDetailModal),
@@ -21,11 +23,13 @@ const TokenDetailModal = dynamic(
 
 export function TrackerApp() {
   const { feed, loading, error, loadFeed, loadStats } = useFeedStore();
-  const { tab, query, maxAgeHours, minLiq, minVol, dexFilter } = useFilterStore();
+  const { tab, query, maxAgeHours, minLiq, minVol, dexFilter, setTab } = useFilterStore();
   const { autoRefresh, selected, setSelected } = useUiStore();
+  const { items: watchlistItems, remove: removeFromWatchlist } = useWatchlist();
 
   // Load initial data on mount and when tab/query changes
   useEffect(() => {
+    if (tab === "portfolio" || tab === "watchlist") return; // Don't fetch for wallet tabs
     loadStats();
     loadFeed(tab, query);
   }, [loadFeed, loadStats, tab, query]);
@@ -34,7 +38,7 @@ export function TrackerApp() {
 
   // Polling for feed data (pure polling, no SSE)
   useEffect(() => {
-    if (tab === "search" || !autoRefresh) return;
+    if (tab === "search" || tab === "portfolio" || tab === "watchlist" || !autoRefresh) return;
     const id = setInterval(() => {
       loadFeed(tab, query);
     }, refreshMs);
@@ -43,7 +47,7 @@ export function TrackerApp() {
 
   // Polling for stats (lightweight, always uses simple polling)
   useEffect(() => {
-    if (!autoRefresh || tab === "search") return;
+    if (!autoRefresh || tab === "search" || tab === "portfolio" || tab === "watchlist") return;
     const id = setInterval(() => {
       loadStats();
     }, Math.max(refreshMs, 15_000));
@@ -83,6 +87,17 @@ export function TrackerApp() {
   }, [feed, maxAgeHours, minLiq, minVol, dexFilter]);
 
   const isSearchTab = tab === "search";
+  const isPortfolioTab = tab === "portfolio";
+  const isWatchlistTab = tab === "watchlist";
+  const isDataTab = !isSearchTab && !isPortfolioTab && !isWatchlistTab;
+
+  // Resolve watchlist items to TrackedPair objects from feed
+  const watchlistPairs = useMemo(() => {
+    if (!feed?.pairs) return [];
+    return watchlistItems
+      .map((item) => feed.pairs.find((p) => p.tokenAddress === item.tokenAddress))
+      .filter((p): p is TrackedPair => p != null);
+  }, [feed, watchlistItems]);
 
   return (
     <div className="app">
@@ -119,7 +134,15 @@ export function TrackerApp() {
         {error ? <div className="error-box">{error}</div> : null}
 
         <ErrorBoundary>
-          {loading && !feed ? (
+          {isPortfolioTab ? (
+            <WalletPortfolio onTokenSelect={(addr) => setTab("search")} />
+          ) : isWatchlistTab ? (
+            <WatchlistPanel
+              pairs={watchlistPairs}
+              onSelect={setSelected}
+              onRemove={removeFromWatchlist}
+            />
+          ) : loading && !feed ? (
             <SkeletonTable rows={8} />
           ) : (
             <PairTable

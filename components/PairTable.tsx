@@ -10,6 +10,7 @@ import {
   shortAddr,
 } from "@/lib/format";
 import { SourceBadges } from "./SourceBadges";
+import { WatchlistStar, useWatchlist } from "./Watchlist";
 
 const ROWS_OPTIONS = [25, 50, 100] as const;
 
@@ -157,6 +158,7 @@ export function PairTable({
 }) {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(25);
+  const { isWatched, toggle } = useWatchlist();
 
   const totalPages = Math.max(1, Math.ceil(pairs.length / rowsPerPage));
 
@@ -183,6 +185,7 @@ export function PairTable({
             <tr>
               <th style={{ width: 40 }}>#</th>
               <th>Token</th>
+              <th style={{ width: 32 }}></th>
               <th>Age</th>
               <th>DEX</th>
               <th className="num">Price</th>
@@ -247,6 +250,7 @@ export function PairTable({
                             ⚡{p.boostAmount ?? ""}
                           </span>
                         ) : null}
+                        <WatchlistStar pair={p} isWatched={isWatched(p.tokenAddress)} onToggle={toggle} />
                       </div>
                       <div className="token-pair">
                         {p.symbol}/{p.quoteSymbol} · {p.name}
