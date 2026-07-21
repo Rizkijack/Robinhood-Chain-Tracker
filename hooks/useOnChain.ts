@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { formatUnits, parseUnits, type Address } from "viem";
 import { ERC20_ABI } from "@/lib/contracts/abi";
 import { ROBINHOOD_ADDRESSES, WETH_BY_CHAIN } from "@/lib/contracts/addresses";
@@ -192,6 +192,7 @@ export interface SwapParams {
 }
 
 export function useSwap() {
+  const { address: walletAddress } = useAccount();
   const { writeContractAsync, data: txHash, isPending, error: writeError } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
@@ -201,12 +202,12 @@ export function useSwap() {
 
   const swapEthForTokens = useCallback(
     async (params: SwapParams) => {
+      if (!walletAddress) throw new Error("Wallet not connected");
       const weth = getWeth();
       const amountInWei = parseUnits(params.amountIn, 18); // ETH has 18 decimals
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 20); // 20 minutes
 
       // Calculate minimum output with slippage
-      // We need to estimate first, then apply slippage
       const estimatedOut = await estimateSwap(
         weth,
         params.tokenOut,
@@ -225,18 +226,18 @@ export function useSwap() {
         args: [
           amountOutMin,
           [weth as Address, params.tokenOut as Address],
-          // Recipient will be the connected wallet (msg.sender)
-          "0x0000000000000000000000000000000000000000" as Address, // placeholder, wagmi uses connected account
+          walletAddress as Address, // explicit recipient
           deadline,
         ],
         value: amountInWei,
       });
     },
-    [getWeth, writeContractAsync]
+    [getWeth, writeContractAsync, walletAddress]
   );
 
   const swapTokensForEth = useCallback(
     async (params: SwapParams) => {
+      if (!walletAddress) throw new Error("Wallet not connected");
       const weth = getWeth();
       const amountInWei = parseUnits(params.amountIn, params.decimalsIn);
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 20);
@@ -260,16 +261,17 @@ export function useSwap() {
           amountInWei,
           amountOutMin,
           [params.tokenIn as Address, weth as Address],
-          "0x0000000000000000000000000000000000000000" as Address,
+          walletAddress as Address, // explicit recipient
           deadline,
         ],
       });
     },
-    [getWeth, writeContractAsync]
+    [getWeth, writeContractAsync, walletAddress]
   );
 
   const swapTokensForTokens = useCallback(
     async (params: SwapParams) => {
+      if (!walletAddress) throw new Error("Wallet not connected");
       const amountInWei = parseUnits(params.amountIn, params.decimalsIn);
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 20);
 
@@ -292,12 +294,12 @@ export function useSwap() {
           amountInWei,
           amountOutMin,
           [params.tokenIn as Address, params.tokenOut as Address],
-          "0x0000000000000000000000000000000000000000" as Address,
+          walletAddress as Address, // explicit recipient
           deadline,
         ],
       });
     },
-    [writeContractAsync]
+    [writeContractAsync, walletAddress]
   );
 
   return {

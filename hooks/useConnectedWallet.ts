@@ -5,8 +5,10 @@
  * Ensures the connected wallet address is available regardless
  * of which provider the user used to connect.
  *
- * Privy hooks are always called (PrivyProvider is mounted in WalletProviders).
- * Results are used conditionally based on PRIVY_ENABLED flag.
+ * ⚠️ Privy hooks (usePrivy, useWallets) MUST NOT be called unless
+ * <PrivyProvider> is mounted in the tree. WalletProviders only mounts
+ * PrivyProvider when NEXT_PUBLIC_PRIVY_APP_ID is set. This hook mirrors
+ * that guard so it never calls Privy hooks in a Privy-less tree.
  */
 
 import { useAccount } from "wagmi";
@@ -24,14 +26,18 @@ export interface ConnectedWallet {
  * Returns the connected wallet address from either Privy or wagmi/Reown.
  * Privy wallets take priority (embedded wallets are more common here).
  *
- * Both hooks are called unconditionally to satisfy Rules of Hooks.
- * PRIVY_ENABLED guards only the result usage, not the call itself.
+ * Privy hooks are only called when PRIVY_ENABLED is true — which is
+ * exactly when <PrivyProvider> is mounted in WalletProviders.
+ * When Privy is disabled, only wagmi/Reown is used.
  */
 export function useConnectedWallet(): ConnectedWallet {
-  // Always call both hook sets (Rules of Hooks — must not be conditional)
   const { address: wagmiAddress } = useAccount();
-  const privy = usePrivy();
-  const { wallets } = useWallets();
+
+  // Only call Privy hooks when the provider is actually mounted.
+  // This avoids "PrivyProvider not found" crashes in environments
+  // where NEXT_PUBLIC_PRIVY_APP_ID is not configured.
+  const privy = PRIVY_ENABLED ? usePrivy() : ({} as ReturnType<typeof usePrivy>);
+  const { wallets } = PRIVY_ENABLED ? useWallets() : { wallets: [] };
 
   // Only use Privy data when configured AND authenticated
   const privyAddress =
