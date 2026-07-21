@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 
-export const WALLET_EXPLORER_BASE = "https://explorer.robinhood.com/address/";
+export const WALLET_EXPLORER_BASE = "https://robinhoodchain.blockscout.com/address/";
 
 export interface WalletState {
   address: string | null;

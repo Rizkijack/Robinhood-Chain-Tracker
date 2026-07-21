@@ -27,9 +27,9 @@ interface TokenHolding {
 
 // Known token list for Robinhood Chain (common pairs)
 const KNOWN_TOKENS: { address: string; symbol: string; name: string; decimals: number }[] = [
-  // WETH
+  // WETH on Robinhood Chain (verified from official docs)
   {
-    address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73",
     symbol: "WETH",
     name: "Wrapped Ether",
     decimals: 18,

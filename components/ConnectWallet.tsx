@@ -14,7 +14,7 @@ import { usePrivy as _usePrivy, useWallets as _useWallets } from "@privy-io/reac
 
 type Toast = { kind: "success" | "error" | "info"; msg: string } | null;
 
-export const WALLET_EXPLORER_BASE = "https://explorer.robinhood.com/address/";
+export const WALLET_EXPLORER_BASE = "https://robinhoodchain.blockscout.com/address/";
 
 export function ConnectWallet() {
   // Wagmi hooks
