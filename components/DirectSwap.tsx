@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useAccount } from "wagmi";
+import { useConnectedWallet } from "@/hooks/useConnectedWallet";
 import { formatUnits, parseUnits, type Address } from "viem";
 import { useSwap, useNativeBalance, useTokenBalance, useTokenInfo } from "@/hooks/useOnChain";
 import { ROBINHOOD_ADDRESSES, WETH_BY_CHAIN } from "@/lib/contracts/addresses";
@@ -25,7 +25,7 @@ export function DirectSwap({
   tokenSymbol?: string;
   tokenPriceUsd?: number | null;
 }) {
-  const { address: wallet, isConnected } = useAccount();
+  const { address: wallet, isConnected } = useConnectedWallet();
   const { balance: ethBalance, refetch: refetchEth } = useNativeBalance(wallet ?? null);
   const { info: tokenInfo } = useTokenInfo(tokenAddress);
   const { balance: tokenBalance, refetch: refetchToken } = useTokenBalance(

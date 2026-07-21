@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
-import { useAccount } from "wagmi";
+import { useConnectedWallet } from "@/hooks/useConnectedWallet";
 import { formatUnits, type Address } from "viem";
 import { useNativeBalance, useTokenBalance, useTokenInfo } from "@/hooks/useOnChain";
 import { formatUsd, formatPrice, shortAddr } from "@/lib/format";
@@ -88,7 +88,7 @@ function HoldingRow({
 }
 
 export function WalletPortfolio({ onTokenSelect }: { onTokenSelect?: (addr: string) => void }) {
-  const { address: wallet, isConnected } = useAccount();
+  const { address: wallet, isConnected } = useConnectedWallet();
   const { balance: ethBalance, loading: ethLoading } = useNativeBalance(wallet ?? null);
   const [customTokens, setCustomTokens] = useState<string[]>([]);
   const [addInput, setAddInput] = useState("");
@@ -227,7 +227,7 @@ function HoldingItem({
   address: string;
   onSelect?: (addr: string) => void;
 }) {
-  const { address: wallet } = useAccount();
+  const { address: wallet } = useConnectedWallet();
   const { info, loading: infoLoading } = useTokenInfo(address);
   const { balance, isLoading: balLoading } = useTokenBalance(
     address,
