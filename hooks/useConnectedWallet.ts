@@ -2,44 +2,42 @@
 
 /**
  * Unified wallet hook that reads from both Privy and wagmi/Reown.
- * This ensures the connected wallet address is available regardless
+ * Ensures the connected wallet address is available regardless
  * of which provider the user used to connect.
+ *
+ * Privy hooks are always called (PrivyProvider is mounted in WalletProviders).
+ * Results are used conditionally based on PRIVY_ENABLED flag.
  */
 
 import { useAccount } from "wagmi";
-import { usePrivy as _usePrivy, useWallets as _useWallets } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 
 const PRIVY_ENABLED = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
 
 export interface ConnectedWallet {
   address: string | null;
-  /** Which provider the wallet came from */
   via: "privy" | "reown" | null;
-  /** Whether any wallet is connected */
   isConnected: boolean;
 }
 
 /**
  * Returns the connected wallet address from either Privy or wagmi/Reown.
- * Privy wallets take priority (since embedded wallets are more common).
+ * Privy wallets take priority (embedded wallets are more common here).
+ *
+ * Both hooks are called unconditionally to satisfy Rules of Hooks.
+ * PRIVY_ENABLED guards only the result usage, not the call itself.
  */
 export function useConnectedWallet(): ConnectedWallet {
-  // Wagmi (Reown)
+  // Always call both hook sets (Rules of Hooks — must not be conditional)
   const { address: wagmiAddress } = useAccount();
+  const privy = usePrivy();
+  const { wallets } = useWallets();
 
-  // Privy — only call hooks when PrivyProvider is mounted
-  let privyAddress: string | null = null;
-  if (PRIVY_ENABLED) {
-    try {
-      const privy = _usePrivy();
-      const { wallets } = _useWallets();
-      if (privy.authenticated && wallets?.length > 0) {
-        privyAddress = wallets[0].address;
-      }
-    } catch {
-      // Privy provider not mounted or not ready
-    }
-  }
+  // Only use Privy data when configured AND authenticated
+  const privyAddress =
+    PRIVY_ENABLED && privy.authenticated && wallets.length > 0
+      ? wallets[0].address
+      : null;
 
   const address = privyAddress || wagmiAddress || null;
   const via = privyAddress ? "privy" : wagmiAddress ? "reown" : null;

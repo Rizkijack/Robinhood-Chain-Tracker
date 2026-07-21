@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { createPublicClient, http, formatUnits, type Address } from "viem";
-import { robinhoodViemChain } from "@/lib/chains";
+import { robinhoodViemChain, ROBINHOOD_RPC_URL } from "@/lib/chains";
 
 const client = createPublicClient({
   chain: robinhoodViemChain,
-  transport: http(),
+  transport: http(ROBINHOOD_RPC_URL),
 });
 
 export async function POST(req: Request) {
