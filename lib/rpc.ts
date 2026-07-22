@@ -17,7 +17,14 @@
  * client and caches it. Don't import it from a `"use client"` file.
  */
 
-import { createPublicClient, http, type Address, type PublicClient } from "viem";
+import {
+  createPublicClient,
+  http,
+  type Address,
+  type PublicClient,
+  encodeFunctionData,
+  decodeFunctionResult,
+} from "viem";
 import { robinhoodViemChain } from "./chains";
 
 /* ── RPC endpoint catalogue ────────────────────────────────────────
@@ -146,13 +153,45 @@ export function readContractSafe<T>(args: {
   cacheKey?: string;
 }): Promise<T> {
   return withRpc(
-    (c) =>
-      c.readContract({
-        address: args.address,
-        abi: args.abi as never,
+    async (c) => {
+      // Use raw eth_call instead of viem's readContract, because
+      // viem 2.55.2 throws when the contract returns empty bytes (0x),
+      // which happens for getAmountsOut when there's no liquidity.
+      // We want that to be a valid 0 result, not an error.
+      //
+      // We encode the function call manually using viem's
+      // encodeFunctionData (typed as any to avoid ABI generic issues),
+      // then decode the result with decodeFunctionResult.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = encodeFunctionData({
+        abi: args.abi as any,
         functionName: args.functionName,
-        args: (args.args ?? []) as never,
-      }) as Promise<T>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        args: (args.args ?? []) as any,
+      });
+
+      const result = await c.call({
+        to: args.address,
+        data,
+      });
+
+      // result.data is the raw return data (hex string).
+      // If empty (0x), the function returned a zero/empty value.
+      const raw = result.data ?? "0x";
+      if (raw === "0x" || !raw) {
+        return 0n as unknown as T;
+      }
+
+      // Decode the return data using the ABI.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const decoded: any = decodeFunctionResult({
+        abi: args.abi as any,
+        functionName: args.functionName,
+        data: raw as `0x${string}`,
+      });
+
+      return (decoded[0] ?? 0n) as T;
+    },
     { cacheKey: args.cacheKey }
   );
 }
