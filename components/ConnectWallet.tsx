@@ -3,39 +3,37 @@
 /**
  * ConnectWallet — wallet connection button with Privy + Reown/WalletConnect.
  *
- * Privy hooks (usePrivy, useWallets) are always called when PRIVY_ENABLED.
- * This satisfies Rules of Hooks — hooks are never called conditionally.
- * WalletProviders only mounts <PrivyProvider> when PRIVY_ENABLED is true,
- * so the hooks always have their provider context available.
+ * Privy state is read via usePrivyWallet() — a context hook with a safe
+ * default (disconnected) when PrivyProvider is not mounted.  This avoids
+ * the Rules-of-Hooks violation of calling usePrivy/useWallets outside
+ * <PrivyProvider>.
+ *
+ * Reown connections use the AppKit modal (useAppKit.open()) rather than
+ * wagmi's connectAsync directly, giving the user the full wallet-chooser UI.
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
 import { shortenAddress } from "@/lib/wallet";
+import { usePrivyWallet, useReownWallet } from "./PrivyWalletContext";
 
 const PRIVY_ENABLED = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
 const REOWN_ENABLED = Boolean(process.env.NEXT_PUBLIC_REOWN_PROJECT_ID);
-
-// Always import — hooks called unconditionally below
-import { usePrivy, useWallets } from "@privy-io/react-auth";
 
 type Toast = { kind: "success" | "error" | "info"; msg: string } | null;
 
 export const WALLET_EXPLORER_BASE = "https://robinhoodchain.blockscout.com/address/";
 
 export function ConnectWallet() {
-  // ── wagmi hooks (always called) ──────────────────────────────
+  // ── wagmi hooks (always safe — WagmiProvider is always mounted) ──
   const { address: wagmiAddress, status: wagmiStatus } = useAccount();
-  const { connectors, connectAsync } = useConnect();
   const { disconnectAsync } = useDisconnect();
 
-  // ── Privy hooks (always called when configured — Rules of Hooks) ─
-  const privy = usePrivy();
-  const { wallets: privyWallets } = useWallets();
+  // ── Privy state via safe context (defaults to disconnected when absent) ─
+  const privyWallet = usePrivyWallet();
 
-  const privyLogin = privy.login;
-  const privyAuthenticated = PRIVY_ENABLED && privy.authenticated;
-  const privyLogout = privy.logout;
+  // ── Reown state via safe context (no-op default when AppKit absent) ─
+  const reownWallet = useReownWallet();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState<Toast>(null);
@@ -51,12 +49,12 @@ export function ConnectWallet() {
 
   // Show a confirmation toast once Privy login completes
   useEffect(() => {
-    if (PRIVY_ENABLED && privyAuthenticated && !wasAuthenticated.current) {
+    if (PRIVY_ENABLED && privyWallet.authenticated && !wasAuthenticated.current) {
       wasAuthenticated.current = true;
       setToast({ kind: "success", msg: "Berhasil terhubung via Privy (email/Google)." });
     }
-    if (!privyAuthenticated) wasAuthenticated.current = false;
-  }, [PRIVY_ENABLED, privyAuthenticated]);
+    if (!privyWallet.authenticated) wasAuthenticated.current = false;
+  }, [PRIVY_ENABLED, privyWallet.authenticated]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -70,10 +68,7 @@ export function ConnectWallet() {
   }, [menuOpen]);
 
   // ── Derived state ──────────────────────────────────────────────
-  const privyAddress =
-    PRIVY_ENABLED && privyAuthenticated && privyWallets.length > 0
-      ? privyWallets[0].address
-      : null;
+  const privyAddress = PRIVY_ENABLED ? privyWallet.address : null;
 
   const address = privyAddress || wagmiAddress || null;
   const via = privyAddress ? "privy" : wagmiAddress ? "reown" : null;
@@ -89,16 +84,13 @@ export function ConnectWallet() {
 
   // ── Connection functions ───────────────────────────────────────
   const connectExternal = async () => {
-    try {
-      const connector = connectors[0];
-      if (connector) await connectAsync({ connector });
-    } catch {
-      /* user rejected or no connector */
-    }
+    // Open the Reown AppKit modal via the safe context wrapper.
+    // When Reown is not configured this gracefully degrades to a no-op.
+    await reownWallet.open();
   };
 
   const connectSocial = async () => {
-    if (!PRIVY_ENABLED || typeof privyLogin !== "function") {
+    if (!PRIVY_ENABLED || !privyWallet.login) {
       setToast({
         kind: "error",
         msg: "Privy belum terkonfigurasi. Cek NEXT_PUBLIC_PRIVY_APP_ID & dashboard Privy.",
@@ -107,7 +99,7 @@ export function ConnectWallet() {
     }
     try {
       setToast({ kind: "info", msg: "Membuka jendela login Privy…" });
-      await privyLogin();
+      await privyWallet.login();
     } catch (error: any) {
       console.error("Social login failed:", error);
       const reason = error?.message ? ` (${error.message})` : "";
@@ -117,8 +109,8 @@ export function ConnectWallet() {
 
   const disconnect = async () => {
     try {
-      if (privyAddress && privyLogout) {
-        await privyLogout();
+      if (privyAddress && privyWallet.logout) {
+        await privyWallet.logout();
         setToast({ kind: "info", msg: "Sesi Privy diputus." });
       } else if (wagmiAddress) {
         await disconnectAsync();
