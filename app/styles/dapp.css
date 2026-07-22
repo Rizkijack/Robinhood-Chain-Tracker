@@ -29,6 +29,130 @@
   background: var(--accent-soft);
 }
 
+/* ── Live real-time indicator ── */
+.swap-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swap-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--green);
+  vertical-align: middle;
+}
+.swap-live-badge.refreshing {
+  color: var(--amber);
+}
+
+.swap-live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: live-pulse 2s ease-in-out infinite;
+}
+.swap-live-dot.blink {
+  animation: live-blink 0.8s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes live-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+
+.swap-live-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 10px;
+  font-size: 10px;
+  color: var(--text-mute);
+}
+.swap-live-text {
+  letter-spacing: 0.02em;
+}
+
+.swap-refresh-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--bg-3);
+  color: var(--text-mute);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+.swap-refresh-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.swap-refreshing-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--accent-soft);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: swap-spin 0.6s linear infinite;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+@keyframes swap-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Quote pulse animation ── */
+.quote-pulse {
+  animation: quote-pulse-key 0.6s ease-out;
+}
+
+@keyframes quote-pulse-key {
+  0% { opacity: 0.5; transform: scale(0.97); }
+  50% { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ── Output meta (USD value + min received) ── */
+.swap-output-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2px;
+}
+
+/* ── Price impact ── */
+.swap-price-impact {
+  font-size: 10px;
+  margin-top: 2px;
+  font-weight: 600;
+}
+.swap-price-impact.low {
+  color: var(--green);
+}
+.swap-price-impact.medium {
+  color: var(--amber);
+}
+.swap-price-impact.high {
+  color: var(--red);
+}
+
 .swap-pair {
   display: flex;
   align-items: center;

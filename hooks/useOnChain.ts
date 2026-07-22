@@ -100,15 +100,24 @@ export type NativeBalanceState =
   | { status: "ready"; balance: string }
   | { status: "error"; message: string };
 
-export function useNativeBalance(walletAddress: string | null) {
+export function useNativeBalance(
+  walletAddress: string | null,
+  pollIntervalMs?: number
+) {
   const [state, setState] = useState<NativeBalanceState>({ status: "idle" });
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
   const fetchBalance = useCallback(async () => {
     if (!walletAddress) {
       setState({ status: "idle" });
+      setLastUpdated(null);
       return;
     }
-    setState({ status: "loading" });
+    // Don't set loading on poll refreshes — keep showing the last known
+    // value so the UI doesn't flicker.
+    if (state.status !== "ready") {
+      setState({ status: "loading" });
+    }
     try {
       const res = await fetch("/api/wallet/balance", {
         method: "POST",
@@ -128,17 +137,25 @@ export function useNativeBalance(walletAddress: string | null) {
       }
       const data = await res.json();
       setState({ status: "ready", balance: data.balance });
+      setLastUpdated(Date.now());
     } catch (e) {
       setState({
         status: "error",
         message: e instanceof Error ? e.message : String(e),
       });
     }
-  }, [walletAddress]);
+  }, [walletAddress, state.status]);
 
   useEffect(() => {
     fetchBalance();
   }, [fetchBalance]);
+
+  // Auto-polling
+  useEffect(() => {
+    if (!pollIntervalMs || !walletAddress) return;
+    const id = setInterval(fetchBalance, pollIntervalMs);
+    return () => clearInterval(id);
+  }, [pollIntervalMs, walletAddress, fetchBalance]);
 
   return {
     state,
@@ -147,6 +164,7 @@ export function useNativeBalance(walletAddress: string | null) {
     loading: state.status === "loading",
     error: state.status === "error" ? state.message : null,
     refetch: fetchBalance,
+    lastUpdated,
   };
 }
 
