@@ -8,6 +8,7 @@ import { http } from "viem";
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { robinhoodViemChain, robinhoodPrivyChain } from "@/lib/chains";
+import { PrivyWalletProvider, ReownWalletProvider } from "./PrivyWalletContext";
 
 const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID?.trim() ?? "";
 const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID?.trim() ?? "";
@@ -28,14 +29,17 @@ if (projectId) {
     ssr: true,
   });
   wagmiConfig = wagmiAdapter.wagmiConfig;
-  createAppKit({
-    adapters: [wagmiAdapter],
-    networks: [robinhoodViemChain as any],
-    projectId,
-    metadata,
-    features: { email: false, socials: [], analytics: false },
-    themeMode: "dark",
-  });
+  // Only initialise AppKit on the client to avoid SSR incompatibilities.
+  if (typeof window !== "undefined") {
+    createAppKit({
+      adapters: [wagmiAdapter],
+      networks: [robinhoodViemChain as any],
+      projectId,
+      metadata,
+      features: { email: false, socials: [], analytics: false },
+      themeMode: "dark",
+    });
+  }
 } else {
   wagmiConfig = createConfig({
     chains: [robinhoodViemChain],
@@ -47,9 +51,16 @@ if (projectId) {
 function AppProviders({ children }: { children: ReactNode }) {
   const queryClient = useMemo(() => new QueryClient(), []);
 
+  // Wrap with ReownWalletProvider only when AppKit has been initialised.
+  const content = projectId ? (
+    <ReownWalletProvider>{children}</ReownWalletProvider>
+  ) : (
+    children
+  );
+
   return (
     <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>{content}</QueryClientProvider>
     </WagmiProvider>
   );
 }
@@ -79,7 +90,9 @@ export function WalletProviders({ children }: { children: ReactNode }) {
         },
       }}
     >
-      <AppProviders>{children}</AppProviders>
+      <PrivyWalletProvider>
+        <AppProviders>{children}</AppProviders>
+      </PrivyWalletProvider>
     </PrivyProvider>
   );
 }
