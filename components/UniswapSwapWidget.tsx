@@ -2,11 +2,23 @@
 
 /**
  * Embedded Uniswap swap via iframe.
- * Benefits vs npm widget:
+ *
+ * Per 2026-07, Uniswap supports Robinhood Chain (chain ID 4663) natively
+ * on app.uniswap.org. The iframe approach is still the lowest-risk
+ * integration because:
  *  - Zero bundle cost (lazy iframe, no heavy deps)
  *  - Always up-to-date UI from Uniswap
  *  - Full cross-chain / bridge support via app.uniswap.org
  *  - No Redux / ethers / styled-components peer dep hell
+ *
+ * URL format:
+ *   https://app.uniswap.org/swap?chain=robinhood&outputCurrency=<0x-address>
+ *
+ * Notes:
+ *  - `chain` uses the Uniswap slug "robinhood" (NOT "robinhood-chain").
+ *  - `outputCurrency` must be a full ERC-20 address, never a symbol.
+ *  - The iframe is sandboxed so the outer page is protected from
+ *    top-navigation / popups initiated by the widget.
  */
 
 import { useMemo, useState, useEffect } from "react";
@@ -33,17 +45,22 @@ export function UniswapSwapWidget({ outputToken }: { outputToken: string }) {
     [connectors]
   );
 
+  // Build the Uniswap swap URL. We always include the chain + output
+  // token so the iframe opens pre-configured for Robinhood Chain.
   const swapUrl = useMemo(() => {
-    const u = new URL("https://app.uniswap.org/#/swap");
+    const u = new URL("https://app.uniswap.org/swap");
     u.searchParams.set("chain", "robinhood");
-    u.searchParams.set("outputCurrency", outputToken);
+    if (outputToken && /^0x[a-fA-F0-9]{40}$/.test(outputToken)) {
+      u.searchParams.set("outputCurrency", outputToken);
+    }
     return u.toString();
   }, [outputToken]);
 
   if (!mounted) return <div className="swap-loading" />;
 
-  /* Wallet not connected → prompt first (Uniswap iframe works either
-     way, but wallet connection is needed to actually submit a tx). */
+  /* Wallet not connected → prompt first. The Uniswap iframe works
+     either way, but a connected wallet is needed to actually submit
+     a transaction (sign via injected provider). */
   if (!isConnected) {
     return (
       <div className="swap-connect-prompt">
@@ -83,8 +100,10 @@ function UniswapIframe({ src }: { src: string }) {
       src={src}
       title="Uniswap Swap"
       loading="lazy"
-      // Sandbox locks: scripts still work inside the iframe, but the outer
-      // page is protected from top-navigation / popups initiated by the widget.
+      // Sandbox locks: scripts still work inside the iframe, but the
+      // outer page is protected from top-navigation / popups initiated
+      // by the widget. allow-same-origin keeps the iframe's cookies
+      // scoped so wallet sessions persist within the frame.
       sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
       referrerPolicy="no-referrer"
     />

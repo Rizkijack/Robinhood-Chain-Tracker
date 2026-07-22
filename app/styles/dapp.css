@@ -139,6 +139,28 @@
   margin-top: 4px;
 }
 
+.swap-balance-error {
+  color: var(--red);
+  font-weight: 600;
+  cursor: help;
+}
+
+.swap-retry-btn {
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+  border-radius: 4px;
+  background: transparent;
+  border: 1px solid var(--line-soft);
+  color: var(--text-mute);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.swap-retry-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .swap-slippage {
   display: flex;
   align-items: center;

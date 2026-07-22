@@ -1,45 +1,69 @@
 import { NextResponse } from "next/server";
-import { createPublicClient, http, type Address } from "viem";
-import { robinhoodViemChain, ROBINHOOD_RPC_URL } from "@/lib/chains";
+import { isAddress, type Address } from "viem";
 import { UNISWAP_V2_ROUTER_ABI } from "@/lib/contracts/abi";
 import { ROBINHOOD_ADDRESSES, WETH_BY_CHAIN } from "@/lib/contracts/addresses";
 import { CHAIN } from "@/lib/constants";
+import { readContractSafe } from "@/lib/rpc";
 
-const client = createPublicClient({
-  chain: robinhoodViemChain,
-  transport: http(ROBINHOOD_RPC_URL),
-});
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
+/**
+ * POST /api/wallet/swap-quote
+ * body: { tokenIn, tokenOut, amountIn, decimalsIn, decimalsOut }
+ *
+ * Returns the expected output amount for a Uniswap V2 swap on Robinhood
+ * Chain. Routes through lib/rpc for fallback + caching.
+ */
 export async function POST(req: Request) {
   try {
-    const { tokenIn, tokenOut, amountIn } = await req.json();
+    const body = await req.json().catch(() => null);
+    const { tokenIn, tokenOut, amountIn } = body ?? {};
 
-    if (!tokenIn || !tokenOut || !amountIn) {
-      return NextResponse.json({ error: "Missing params" }, { status: 400 });
+    if (
+      !tokenIn ||
+      !tokenOut ||
+      !amountIn ||
+      typeof tokenIn !== "string" ||
+      typeof tokenOut !== "string" ||
+      typeof amountIn !== "string" ||
+      !isAddress(tokenIn) ||
+      !isAddress(tokenOut)
+    ) {
+      return NextResponse.json(
+        { error: "Missing or invalid params" },
+        { status: 400 }
+      );
+    }
+
+    let amountInBig: bigint;
+    try {
+      amountInBig = BigInt(amountIn);
+    } catch {
+      return NextResponse.json({ error: "Invalid amountIn" }, { status: 400 });
     }
 
     const weth = WETH_BY_CHAIN[CHAIN.chainId] ?? ROBINHOOD_ADDRESSES.WETH;
 
-    // Build path: if either token is WETH, direct path; otherwise go through WETH
-    let path: Address[];
     const tokenInLower = tokenIn.toLowerCase();
     const tokenOutLower = tokenOut.toLowerCase();
     const wethLower = weth.toLowerCase();
 
-    if (tokenInLower === wethLower || tokenOutLower === wethLower) {
-      // Direct path through WETH
-      path = [tokenIn as Address, tokenOut as Address];
-    } else {
-      // Double-hop: tokenIn -> WETH -> tokenOut
-      path = [tokenIn as Address, weth as Address, tokenOut as Address];
-    }
+    // If either token is WETH, direct path; otherwise hop through WETH.
+    const path: Address[] =
+      tokenInLower === wethLower || tokenOutLower === wethLower
+        ? [tokenIn as Address, tokenOut as Address]
+        : [tokenIn as Address, weth as Address, tokenOut as Address];
 
-    const amounts = await client.readContract({
-      abi: UNISWAP_V2_ROUTER_ABI,
+    const amounts = (await readContractSafe<readonly bigint[]>({
       address: ROBINHOOD_ADDRESSES.UNISWAP_V2_ROUTER as Address,
+      abi: UNISWAP_V2_ROUTER_ABI as readonly unknown[],
       functionName: "getAmountsOut",
-      args: [BigInt(amountIn), path],
-    });
+      args: [amountInBig, path],
+      cacheKey: `quote:${ROBINHOOD_ADDRESSES.UNISWAP_V2_ROUTER.toLowerCase()}:${amountIn}:${path
+        .map((a) => a.toLowerCase())
+        .join(",")}`,
+    })) as readonly bigint[];
 
     const amountOut = amounts[amounts.length - 1];
 
@@ -48,6 +72,7 @@ export async function POST(req: Request) {
       path: path.map((a) => a.toLowerCase()),
     });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

@@ -94,30 +94,45 @@ export function useTokenBalance(
 
 // ── Native ETH Balance Hook ───────────────────────────────────
 
+export type NativeBalanceState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "ready"; balance: string }
+  | { status: "error"; message: string };
+
 export function useNativeBalance(walletAddress: string | null) {
-  const [balance, setBalance] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = useState<NativeBalanceState>({ status: "idle" });
 
   const fetchBalance = useCallback(async () => {
     if (!walletAddress) {
-      setBalance(null);
+      setState({ status: "idle" });
       return;
     }
-    setLoading(true);
+    setState({ status: "loading" });
     try {
       const res = await fetch("/api/wallet/balance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address: walletAddress }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setBalance(data.balance);
+      if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try {
+          const errBody = await res.json();
+          if (errBody?.error) msg = errBody.error;
+        } catch {
+          /* non-JSON body */
+        }
+        setState({ status: "error", message: msg });
+        return;
       }
-    } catch {
-      // non-critical
-    } finally {
-      setLoading(false);
+      const data = await res.json();
+      setState({ status: "ready", balance: data.balance });
+    } catch (e) {
+      setState({
+        status: "error",
+        message: e instanceof Error ? e.message : String(e),
+      });
     }
   }, [walletAddress]);
 
@@ -125,7 +140,14 @@ export function useNativeBalance(walletAddress: string | null) {
     fetchBalance();
   }, [fetchBalance]);
 
-  return { balance, loading, refetch: fetchBalance };
+  return {
+    state,
+    /** Convenience: string when ready, null otherwise. */
+    balance: state.status === "ready" ? state.balance : null,
+    loading: state.status === "loading",
+    error: state.status === "error" ? state.message : null,
+    refetch: fetchBalance,
+  };
 }
 
 // ── WETH Address Helper ───────────────────────────────────────

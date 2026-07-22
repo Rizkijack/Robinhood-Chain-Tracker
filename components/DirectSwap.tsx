@@ -2,13 +2,23 @@
 
 /**
  * Direct on-chain swap via Uniswap V2 Router contract.
- * Replaces the iframe-based UniswapSwapWidget with real contract interaction.
+ *
+ * Two swap UIs are available:
+ *  - <UniswapSwapWidget /> — iframe embed of app.uniswap.org (now
+ *    supports Robinhood Chain natively, chain slug "robinhood").
+ *  - <DirectSwap /> — this component, a lightweight on-chain swap
+ *    using the Uniswap V2 Router contract directly. Used when you
+ *    want full control over the UX without an iframe.
+ *
+ * Both read the native ETH balance from our own RPC pool
+ * (lib/rpc.ts) so balance detection works regardless of which
+ * swap path the user picks.
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useConnectedWallet } from "@/hooks/useConnectedWallet";
 import { formatUnits, parseUnits, type Address } from "viem";
-import { useSwap, useNativeBalance, useTokenBalance, useTokenInfo } from "@/hooks/useOnChain";
+import { useSwap, useNativeBalance, useTokenBalance, useTokenInfo, type NativeBalanceState } from "@/hooks/useOnChain";
 import { ROBINHOOD_ADDRESSES, WETH_BY_CHAIN } from "@/lib/contracts/addresses";
 import { CHAIN } from "@/lib/constants";
 import { formatUsd } from "@/lib/format";
@@ -26,7 +36,7 @@ export function DirectSwap({
   tokenPriceUsd?: number | null;
 }) {
   const { address: wallet, isConnected } = useConnectedWallet();
-  const { balance: ethBalance, refetch: refetchEth } = useNativeBalance(wallet ?? null);
+  const { balance: ethBalance, loading: ethLoading, error: ethError, state: ethState, refetch: refetchEth } = useNativeBalance(wallet ?? null);
   const { info: tokenInfo } = useTokenInfo(tokenAddress);
   const { balance: tokenBalance, refetch: refetchToken } = useTokenBalance(
     tokenAddress,
@@ -144,7 +154,17 @@ export function DirectSwap({
     } catch (e: any) {
       setTxError(e?.message?.includes("User rejected") ? "Transaction rejected" : String(e));
     }
-  }, [amountIn, direction, weth, tokenAddress, tokenInfo, slippage, swapEthForTokens, swapTokensForEth, swapTokensForTokens]);
+  }, [
+    amountIn,
+    direction,
+    weth,
+    tokenAddress,
+    tokenInfo?.decimals,
+    slippage,
+    swapEthForTokens,
+    swapTokensForEth,
+    swapTokensForTokens,
+  ]);
 
   // Reset on success
   useEffect(() => {
@@ -238,10 +258,28 @@ export function DirectSwap({
         <div className="swap-balance">
           Balance:{" "}
           <span className="mono">
-            {direction === "eth-to-token"
-              ? `${ethBalNum.toFixed(4)} ${CHAIN.nativeGas}`
-              : `${tokenBalNum.toFixed(4)} ${tokenSymbol}`}
+            {direction === "eth-to-token" ? (
+              <EthBalanceLabel
+                ethState={ethState}
+                ethBalance={ethBalance}
+                loading={ethLoading}
+                error={ethError}
+                symbol={CHAIN.nativeGas}
+              />
+            ) : (
+              `${tokenBalNum.toFixed(4)} ${tokenSymbol}`
+            )}
           </span>
+          {direction === "eth-to-token" && ethError && (
+            <button
+              type="button"
+              className="swap-retry-btn"
+              onClick={refetchEth}
+              title="Retry balance fetch"
+            >
+              ↻
+            </button>
+          )}
         </div>
       </div>
 
@@ -330,4 +368,40 @@ export function DirectSwap({
       </div>
     </div>
   );
+}
+
+/**
+ * Render the user's native ETH balance with explicit loading/error
+ * states. We deliberately don't fall back to "0.0000 ETH" when the
+ * fetch fails — that's misleading because it looks like the wallet
+ * is empty when in reality the RPC call didn't return anything.
+ */
+function EthBalanceLabel({
+  ethState,
+  ethBalance,
+  loading,
+  error,
+  symbol,
+}: {
+  ethState: NativeBalanceState;
+  ethBalance: string | null;
+  loading: boolean;
+  error: string | null;
+  symbol: string;
+}) {
+  if (ethState.status === "idle") {
+    return <span className="muted">— {symbol}</span>;
+  }
+  if (loading || ethState.status === "loading") {
+    return <span className="muted">loading… {symbol}</span>;
+  }
+  if (error || ethState.status === "error") {
+    return (
+      <span className="swap-balance-error" title={error ?? undefined}>
+        RPC error
+      </span>
+    );
+  }
+  const num = Number(ethBalance ?? 0);
+  return `${num.toFixed(4)} ${symbol}`;
 }

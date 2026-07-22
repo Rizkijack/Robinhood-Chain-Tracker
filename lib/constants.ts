@@ -4,7 +4,7 @@ export const CHAIN = {
   chainId: 4663,
   nativeGas: "ETH",
   explorer: "https://robinhoodchain.blockscout.com",
-  rpcHint: "https://robinhood-mainnet.g.alchemy.com/v2/{API_KEY}",
+  rpcHint: "https://rpc.mainnet.chain.robinhood.com",
 } as const;
 
 export const DEXSCREENER_BASE = "https://api.dexscreener.com";
