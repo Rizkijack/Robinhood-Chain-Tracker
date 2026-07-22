@@ -67,6 +67,15 @@ export async function POST(req: Request) {
 
     const amountOut = amounts[amounts.length - 1];
 
+    // If output is 0, the token pair has no liquidity on Uniswap V2.
+    // Return a clear message instead of a silent 0.
+    if (amountOut === 0n) {
+      return NextResponse.json(
+        { error: "No liquidity for this pair on Uniswap V2" },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json({
       amountOut: amountOut.toString(),
       path: path.map((a) => a.toLowerCase()),

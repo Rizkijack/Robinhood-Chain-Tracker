@@ -60,6 +60,7 @@ export function DirectSwap({
   const [direction, setDirection] = useState<SwapDirection>("eth-to-token");
   const [estimatedOut, setEstimatedOut] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
 
   const weth = WETH_BY_CHAIN[CHAIN.chainId] ?? ROBINHOOD_ADDRESSES.WETH;
@@ -77,12 +78,14 @@ export function DirectSwap({
   useEffect(() => {
     if (!amountIn || Number(amountIn) <= 0) {
       setEstimatedOut(null);
+      setQuoteError(null);
       return;
     }
 
     let cancelled = false;
     const timer = setTimeout(async () => {
       setQuoteLoading(true);
+      setQuoteError(null);
       try {
         const decimalsIn = direction === "eth-to-token" ? 18 : (tokenInfo?.decimals ?? 18);
         const amountInWei = parseUnits(amountIn, decimalsIn);
@@ -106,16 +109,26 @@ export function DirectSwap({
           }),
         });
 
-        if (!res.ok) throw new Error("Quote failed");
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody?.error || `Quote failed (HTTP ${res.status})`);
+        }
+
         const data = await res.json();
 
         if (!cancelled) {
-          const decimalsOut = direction === "eth-to-token" ? 18 : 18;
-          const out = formatUnits(BigInt(data.amountOut), decimalsOut);
+          // For eth-to-token, output is in WETH (18 decimals).
+          // For token-to-eth, output is ETH (18 decimals).
+          // Both are 18 decimals, so this is correct.
+          const out = formatUnits(BigInt(data.amountOut), 18);
           setEstimatedOut(out);
         }
-      } catch {
-        if (!cancelled) setEstimatedOut(null);
+      } catch (e) {
+        if (!cancelled) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setQuoteError(msg);
+          setEstimatedOut(null);
+        }
       } finally {
         if (!cancelled) setQuoteLoading(false);
       }
@@ -290,9 +303,22 @@ export function DirectSwap({
         </label>
         <div className="swap-input-wrap swap-output">
           <span className="swap-output-value mono">
-            {quoteLoading ? "..." : estimatedOut ? Number(estimatedOut).toFixed(6) : "0.0"}
+            {quoteLoading
+              ? "..."
+              : estimatedOut && Number(estimatedOut) > 0
+                ? Number(estimatedOut).toFixed(6)
+                : quoteError
+                  ? "—"
+                  : "0.0"}
           </span>
         </div>
+        {quoteError && (
+          <div className="swap-quote-error" title={quoteError}>
+            {quoteError.includes("liquidity") || quoteError.includes("K")
+              ? "No liquidity for this pair"
+              : quoteError}
+          </div>
+        )}
         {estimatedUsd != null && (
           <div className="swap-balance">≈ {formatUsd(estimatedUsd)}</div>
         )}
