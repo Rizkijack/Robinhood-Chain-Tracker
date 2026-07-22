@@ -1,9 +1,15 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { EXTERNAL_LINKS } from "@/lib/constants";
 import { useFeedStore, useFilterStore, useUiStore } from "@/lib/store";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { ConnectWallet } from "./ConnectWallet";
+
+// Lazy-load ConnectWallet — pulls in Privy/Wagmi/viem only when needed
+const ConnectWallet = dynamic(
+  () => import("./ConnectWallet").then((m) => m.ConnectWallet),
+  { ssr: false, loading: () => <span className="muted" style={{fontSize:11}}>Wallet...</span> }
+);
 
 export function Header() {
   const { searchInput, setSearchInput, onSearchSubmit, tab, query, setTab } = useFilterStore();

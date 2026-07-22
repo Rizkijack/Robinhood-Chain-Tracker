@@ -13,9 +13,17 @@ import { Controls } from "./Controls";
 import { MetaInfo } from "./MetaInfo";
 import { Footer } from "./Footer";
 import { PairTable } from "./PairTable";
-import { WalletPortfolio } from "./WalletPortfolio";
-import { WatchlistPanel, useWatchlist } from "./Watchlist";
+import { useWatchlist } from "./Watchlist";
 
+// Lazy-load wallet components — only needed when user interacts with wallet
+const WalletPortfolio = dynamic(
+  () => import("./WalletPortfolio").then((m) => m.WalletPortfolio),
+  { ssr: false, loading: () => <div className="portfolio-loading">Loading...</div> }
+);
+const WatchlistPanel = dynamic(
+  () => import("./Watchlist").then((m) => m.WatchlistPanel),
+  { ssr: false }
+);
 const TokenDetailModal = dynamic(
   () => import("./TokenDetailModal").then((m) => m.TokenDetailModal),
   { ssr: false }
