@@ -349,10 +349,16 @@ export async function searchPairs(q: string): Promise<FeedResponse> {
   const [dexRes, geoRes] = await Promise.allSettled([searchDex(q), searchGecko(q)]);
 
   if (dexRes.status === "fulfilled") pairs.push(...dexRes.value);
-  else errors.push({ source: "dexscreener-search", message: String(dexRes.reason) });
+  else {
+    logError("dexscreener-search", dexRes.reason);
+    errors.push({ source: "dexscreener-search", message: String(dexRes.reason) });
+  }
 
   if (geoRes.status === "fulfilled") pairs.push(...geoRes.value);
-  else errors.push({ source: "geckoterminal-search", message: String(geoRes.reason) });
+  else {
+    logError("geckoterminal-search", geoRes.reason);
+    errors.push({ source: "geckoterminal-search", message: String(geoRes.reason) });
+  }
 
   return {
     updatedAt: new Date().toISOString(),
