@@ -1,34 +1,41 @@
 "use client";
 
+/**
+ * ConnectWallet — wallet connection button with Privy + Reown/WalletConnect.
+ *
+ * Privy hooks (usePrivy, useWallets) are always called when PRIVY_ENABLED.
+ * This satisfies Rules of Hooks — hooks are never called conditionally.
+ * WalletProviders only mounts <PrivyProvider> when PRIVY_ENABLED is true,
+ * so the hooks always have their provider context available.
+ */
+
 import { useEffect, useRef, useState } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { shortenAddress } from "@/lib/wallet";
 
-// Check if Privy is configured
 const PRIVY_ENABLED = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
 const REOWN_ENABLED = Boolean(process.env.NEXT_PUBLIC_REOWN_PROJECT_ID);
 
-// Statically import Privy hooks (safe — only invoked when PRIVY_ENABLED,
-// which is exactly when <PrivyProvider> is mounted in WalletProviders).
-import { usePrivy as _usePrivy, useWallets as _useWallets } from "@privy-io/react-auth";
+// Always import — hooks called unconditionally below
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 
 type Toast = { kind: "success" | "error" | "info"; msg: string } | null;
 
 export const WALLET_EXPLORER_BASE = "https://robinhoodchain.blockscout.com/address/";
 
 export function ConnectWallet() {
-  // Wagmi hooks
+  // ── wagmi hooks (always called) ──────────────────────────────
   const { address: wagmiAddress, status: wagmiStatus } = useAccount();
   const { connectors, connectAsync } = useConnect();
   const { disconnectAsync } = useDisconnect();
 
-  // Privy hooks (only meaningful when PRIVY_ENABLED / provider mounted)
-  const privy = PRIVY_ENABLED ? _usePrivy() : ({} as any);
-  const privyWalletsResp = PRIVY_ENABLED ? _useWallets() : ({} as any);
+  // ── Privy hooks (always called when configured — Rules of Hooks) ─
+  const privy = usePrivy();
+  const { wallets: privyWallets } = useWallets();
+
   const privyLogin = privy.login;
-  const privyAuthenticated = privy.authenticated;
+  const privyAuthenticated = PRIVY_ENABLED && privy.authenticated;
   const privyLogout = privy.logout;
-  const privyWallets = privyWalletsResp.wallets ?? [];
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState<Toast>(null);
@@ -62,13 +69,14 @@ export function ConnectWallet() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [menuOpen]);
 
-  // Calculate derived state
-  const privyAddress = privyAuthenticated && privyWallets.length > 0
-    ? privyWallets[0].address
-    : null;
+  // ── Derived state ──────────────────────────────────────────────
+  const privyAddress =
+    PRIVY_ENABLED && privyAuthenticated && privyWallets.length > 0
+      ? privyWallets[0].address
+      : null;
 
   const address = privyAddress || wagmiAddress || null;
-  const via = privyAddress ? "privy" : (wagmiAddress ? "reown" : null);
+  const via = privyAddress ? "privy" : wagmiAddress ? "reown" : null;
 
   let status: "connected" | "disconnected" | "connecting" | "reconnecting";
   if (address) {
@@ -79,7 +87,7 @@ export function ConnectWallet() {
     status = "disconnected";
   }
 
-  // Connection functions
+  // ── Connection functions ───────────────────────────────────────
   const connectExternal = async () => {
     try {
       const connector = connectors[0];
@@ -120,7 +128,7 @@ export function ConnectWallet() {
     }
   };
 
-  // ── Connected: show address + menu ───────────────────────────────
+  // ── Connected: show address + menu ─────────────────────────────
   if (status === "connected" && address) {
     const explorerUrl = `${WALLET_EXPLORER_BASE}${address}`;
     return (
@@ -171,7 +179,7 @@ export function ConnectWallet() {
     );
   }
 
-  // ── Not connected: chooser popover ───────────────────────────────
+  // ── Not connected: chooser popover ─────────────────────────────
   const anyEnabled = REOWN_ENABLED || PRIVY_ENABLED;
 
   return (

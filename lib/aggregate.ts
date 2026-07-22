@@ -1,5 +1,38 @@
 import { CHAIN, recommendedClientRefreshMs } from "./constants";
 import type { FeedResponse, StatsResponse, TrackedPair, TrackSource } from "./types";
+
+/**
+ * Structured error logger. In production, replace console.error with a
+ * monitoring service (Sentry, Logtail, etc.). Vercel captures console.error
+ * output in its serverless function logs automatically.
+ */
+function logError(source: string, error: unknown): void {
+  const message = error instanceof Error ? error.message : String(error);
+  const timestamp = new Date().toISOString();
+  // Vercel logs capture this; in production, swap for Sentry.captureException
+  console.error(JSON.stringify({
+    level: "error",
+    timestamp,
+    source,
+    message: message.slice(0, 500), // cap to prevent log flooding
+  }));
+}
+
+/**
+ * Helper: safely execute an async operation, logging errors.
+ * Returns the result or null on failure.
+ */
+async function safeExecute<T>(
+  source: string,
+  fn: () => Promise<T>
+): Promise<T | null> {
+  try {
+    return await fn();
+  } catch (e) {
+    logError(source, e);
+    return null;
+  }
+}
 import {
   enrichTokensBatch,
   fetchDexBoosts,
@@ -130,16 +163,28 @@ export async function getNewPairsFeed(): Promise<FeedResponse> {
   let geoNew: TrackedPair[] = [];
 
   if (profilesRes.status === "fulfilled") profiles = profilesRes.value;
-  else errors.push({ source: "dexscreener-profiles", message: String(profilesRes.reason) });
+  else {
+    logError("dexscreener-profiles", profilesRes.reason);
+    errors.push({ source: "dexscreener-profiles", message: String(profilesRes.reason) });
+  }
 
   if (boostsRes.status === "fulfilled") boosts = boostsRes.value;
-  else errors.push({ source: "dexscreener-boosts", message: String(boostsRes.reason) });
+  else {
+    logError("dexscreener-boosts", boostsRes.reason);
+    errors.push({ source: "dexscreener-boosts", message: String(boostsRes.reason) });
+  }
 
   if (beNewRes.status === "fulfilled") beNew = beNewRes.value;
-  else errors.push({ source: "birdeye-new-listings", message: String(beNewRes.reason) });
+  else {
+    logError("birdeye-new-listings", beNewRes.reason);
+    errors.push({ source: "birdeye-new-listings", message: String(beNewRes.reason) });
+  }
 
   if (geoNewRes.status === "fulfilled") geoNew = geoNewRes.value;
-  else errors.push({ source: "geckoterminal-new-pools", message: String(geoNewRes.reason) });
+  else {
+    logError("geckoterminal-new-pools", geoNewRes.reason);
+    errors.push({ source: "geckoterminal-new-pools", message: String(geoNewRes.reason) });
+  }
 
   let pairs = mergeLists(profiles, boosts, beNew, geoNew);
   pairs = sortByNewest(pairs);
@@ -149,6 +194,7 @@ export async function getNewPairsFeed(): Promise<FeedResponse> {
   try {
     pairs = await enrichRobinhoodWithCoinGecko(pairs);
   } catch (e) {
+    logError("coingecko-enrich", e);
     errors.push({ source: "coingecko-enrich", message: String(e) });
   }
 
@@ -185,13 +231,22 @@ export async function getTrendingFeed(): Promise<FeedResponse> {
   ]);
 
   if (dexRes.status === "fulfilled") pairs.push(...dexRes.value);
-  else errors.push({ source: "dexscreener-realtime-trending", message: String(dexRes.reason) });
+  else {
+    logError("dexscreener-realtime-trending", dexRes.reason);
+    errors.push({ source: "dexscreener-realtime-trending", message: String(dexRes.reason) });
+  }
 
   if (beRes.status === "fulfilled") pairs.push(...beRes.value);
-  else errors.push({ source: "birdeye-realtime-trending", message: String(beRes.reason) });
+  else {
+    logError("birdeye-realtime-trending", beRes.reason);
+    errors.push({ source: "birdeye-realtime-trending", message: String(beRes.reason) });
+  }
 
   if (geoRes.status === "fulfilled") pairs.push(...geoRes.value);
-  else errors.push({ source: "geckoterminal-trending-pools", message: String(geoRes.reason) });
+  else {
+    logError("geckoterminal-trending-pools", geoRes.reason);
+    errors.push({ source: "geckoterminal-trending-pools", message: String(geoRes.reason) });
+  }
 
   let merged = mergeLists(pairs);
 
@@ -204,6 +259,7 @@ export async function getTrendingFeed(): Promise<FeedResponse> {
       return e ? mergePair(p, e) : p;
     });
   } catch (e) {
+    logError("dexscreener-enrich", e);
     errors.push({ source: "dexscreener-enrich", message: String(e) });
   }
 
@@ -218,6 +274,7 @@ export async function getTrendingFeed(): Promise<FeedResponse> {
       });
     }
   } catch (e) {
+    logError("geckoterminal-enrich", e);
     errors.push({ source: "geckoterminal-enrich", message: String(e) });
   }
 
@@ -227,11 +284,13 @@ export async function getTrendingFeed(): Promise<FeedResponse> {
   try {
     merged = await enrichRobinhoodWithCoinGecko(merged);
   } catch (e) {
+    logError("coingecko-enrich", e);
     errors.push({ source: "coingecko-enrich", message: String(e) });
   }
   try {
     merged = await enrichRobinhoodWithCoinMarketCap(merged);
   } catch (e) {
+    logError("coinmarketcap-enrich", e);
     errors.push({ source: "coinmarketcap-enrich", message: String(e) });
   }
 
@@ -265,6 +324,7 @@ export async function getBoostsFeed(): Promise<FeedResponse> {
   try {
     pairs = await fetchDexBoosts();
   } catch (e) {
+    logError("dexscreener-boosts", e);
     errors.push({ source: "dexscreener-boosts", message: String(e) });
   }
 
