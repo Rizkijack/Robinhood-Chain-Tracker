@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import type { TrackedPair } from "@/lib/types";
 import {
   formatAge,
@@ -14,11 +14,62 @@ import { WatchlistStar, useWatchlist } from "./Watchlist";
 
 const ROWS_OPTIONS = [25, 50, 100] as const;
 
-function Pct({ value }: { value: number | null }) {
+/** Hook to track which prices changed between renders */
+function usePriceFlash(pairs: TrackedPair[]) {
+  const prevPrices = useRef<Map<string, { price: number | null; change5m: number | null; change1h: number | null; change24h: number | null }>>(new Map());
+  const [flashingCells, setFlashingCells] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const newFlashing = new Set<string>();
+    
+    pairs.forEach((pair) => {
+      const key = pair.id + pair.pairAddress;
+      const prev = prevPrices.current.get(key);
+      
+      if (prev) {
+        // Check price change
+        if (prev.price !== pair.priceUsd && pair.priceUsd != null) {
+          newFlashing.add(`${key}-price`);
+        }
+        // Check 5m change
+        if (prev.change5m !== pair.priceChange5m && pair.priceChange5m != null) {
+          newFlashing.add(`${key}-5m`);
+        }
+        // Check 1h change
+        if (prev.change1h !== pair.priceChange1h && pair.priceChange1h != null) {
+          newFlashing.add(`${key}-1h`);
+        }
+        // Check 24h change
+        if (prev.change24h !== pair.priceChange24h && pair.priceChange24h != null) {
+          newFlashing.add(`${key}-24h`);
+        }
+      }
+      
+      // Update previous values
+      prevPrices.current.set(key, {
+        price: pair.priceUsd,
+        change5m: pair.priceChange5m,
+        change1h: pair.priceChange1h,
+        change24h: pair.priceChange24h,
+      });
+    });
+    
+    if (newFlashing.size > 0) {
+      setFlashingCells(newFlashing);
+      // Clear flash after animation
+      const timer = setTimeout(() => setFlashingCells(new Set()), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [pairs]);
+
+  return flashingCells;
+}
+
+function Pct({ value, flash }: { value: number | null; flash?: boolean }) {
   if (value == null) return <span className="pct flat">—</span>;
   const cls =
     value > 0 ? "pct up" : value < 0 ? "pct down" : "pct flat";
-  return <span className={cls}>{formatPct(value)}</span>;
+  return <span className={`${cls} ${flash ? 'flash-update' : ''}`}>{formatPct(value)}</span>;
 }
 
 function AgeCell({ ageMs }: { ageMs: number | null }) {
@@ -159,6 +210,7 @@ export function PairTable({
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(25);
   const { isWatched, toggle } = useWatchlist();
+  const flashingCells = usePriceFlash(pairs);
 
   const totalPages = Math.max(1, Math.ceil(pairs.length / rowsPerPage));
 
@@ -278,16 +330,29 @@ export function PairTable({
                   </span>
                 </td>
                 <td className="num">
-                  <span className="mono">{formatPrice(p.priceUsd)}</span>
+                  <span 
+                    className={`mono ${flashingCells.has(`${p.id + p.pairAddress}-price`) ? 'flash-update' : ''}`}
+                  >
+                    {formatPrice(p.priceUsd)}
+                  </span>
                 </td>
                 <td className="num">
-                  <Pct value={p.priceChange5m} />
+                  <Pct 
+                    value={p.priceChange5m} 
+                    flash={flashingCells.has(`${p.id + p.pairAddress}-5m`)} 
+                  />
                 </td>
                 <td className="num">
-                  <Pct value={p.priceChange1h} />
+                  <Pct 
+                    value={p.priceChange1h} 
+                    flash={flashingCells.has(`${p.id + p.pairAddress}-1h`)} 
+                  />
                 </td>
                 <td className="num">
-                  <Pct value={p.priceChange24h} />
+                  <Pct 
+                    value={p.priceChange24h} 
+                    flash={flashingCells.has(`${p.id + p.pairAddress}-24h`)} 
+                  />
                 </td>
                 <td className="num">
                   <span className="mono">{formatUsd(p.liquidityUsd)}</span>

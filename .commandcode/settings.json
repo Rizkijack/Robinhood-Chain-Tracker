@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(npm:*)",
+      "Shell(node -e \"try { require.resolve('lightweight-charts'); console.log('installed'); } catch(e) { console.log('not installed'); }\")",
+      "Shell(node -e \"console.log(require.resolve('lightweight-charts', {paths:['G:/PROJECT/Robinhood-Screener']}))\")",
+      "Shell(npx tsc --noEmit 2>&1)",
+      "Shell(npx tsc --noEmit --pretty false components/PriceChart.tsx 2 >& 1)"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}
