@@ -406,3 +406,35 @@ export async function fetchTokenDetail(address: string): Promise<TokenDetail> {
     recommendedRefreshMs: SOURCE_TIMING.geckoterminal.refreshMs,
   };
 }
+
+/**
+ * Fetch recent transactions for a token from GeckoTerminal.
+ * Returns raw transaction data that needs to be normalized.
+ */
+export async function fetchTokenTransactions(
+  address: string,
+  page = 1
+): Promise<{ transactions: unknown[] }> {
+  const addr = address.toLowerCase();
+  try {
+    const url = `${GECKOTERMINAL_BASE}/networks/${NETWORK}/tokens/${addr}/transactions?page=${page}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`GeckoTerminal API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      transactions: data.data?.attributes?.transactions || [],
+    };
+  } catch (error) {
+    console.error('Failed to fetch token transactions:', error);
+    return { transactions: [] };
+  }
+}

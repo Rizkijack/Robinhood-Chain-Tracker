@@ -77,7 +77,7 @@ export const useNotificationStore = create<NotificationState>()(
         }));
 
         // Auto-dismiss
-        if (fullToast.duration > 0) {
+        if (fullToast.duration && fullToast.duration > 0) {
           setTimeout(() => {
             get().removeToast(id);
           }, fullToast.duration);

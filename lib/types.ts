@@ -168,3 +168,45 @@ export interface StatsResponse {
   /** Recommended client auto-refresh cadence (ms), derived from enabled sources' rate limits */
   recommendedRefreshMs?: number;
 }
+
+/** Real-time transaction data for TokenDetailModal transaction stream */
+export interface TokenTransaction {
+  /** Transaction hash */
+  hash: string;
+  /** Transaction type */
+  type: 'buy' | 'sell';
+  /** Trader wallet address */
+  trader: string;
+  /** Token amount traded */
+  tokenAmount: number;
+  /** Token symbol */
+  tokenSymbol: string;
+  /** USD value of the transaction */
+  usdValue: number;
+  /** Unix timestamp in milliseconds */
+  timestamp: number;
+  /** Gas used (optional) */
+  gasUsed?: number;
+  /** Gas fee in native token (optional) */
+  gasFee?: number;
+  /** DEX name where transaction occurred (optional) */
+  dexName?: string;
+  /** Block number in hex (optional) */
+  blockNumber?: string;
+  /** Whether this is a whale transaction (auto-calculated: usdValue > 10000) */
+  isWhale?: boolean;
+  /** Whether this is a mega whale transaction (auto-calculated: usdValue > 50000) */
+  isMegaWhale?: boolean;
+}
+
+/** Transaction filter options */
+export interface TransactionFilter {
+  /** Filter by type */
+  type: 'all' | 'buy' | 'sell';
+  /** Filter by time range */
+  timeRange: '15m' | '1h' | '24h' | 'all';
+  /** Minimum USD value */
+  minValue: number;
+  /** Search by wallet address */
+  searchQuery: string;
+}

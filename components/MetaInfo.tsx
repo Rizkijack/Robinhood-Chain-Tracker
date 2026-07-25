@@ -2,6 +2,7 @@
 
 import { REFRESH_MS } from "@/lib/constants";
 import { useFeedStore, useFilterStore, useUiStore } from "@/lib/store";
+import { ConnectionStatus } from "@/components/ConnectionStatus";
 
 export function MetaInfo() {
   const { feed, lastFetch, loading } = useFeedStore();
@@ -34,6 +35,9 @@ export function MetaInfo() {
             · updated {lastFetch.toLocaleTimeString()}
           </span>
         ) : null}
+        <span style={{ marginLeft: 8 }}>
+          <ConnectionStatus />
+        </span>
       </div>
       <div>
         Sources: {sources.length > 0 ? sources.join(" · ") : "—"}

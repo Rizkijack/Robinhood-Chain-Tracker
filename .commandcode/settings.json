@@ -5,7 +5,15 @@
       "Shell(node -e \"try { require.resolve('lightweight-charts'); console.log('installed'); } catch(e) { console.log('not installed'); }\")",
       "Shell(node -e \"console.log(require.resolve('lightweight-charts', {paths:['G:/PROJECT/Robinhood-Screener']}))\")",
       "Shell(npx tsc --noEmit 2>&1)",
-      "Shell(npx tsc --noEmit --pretty false components/PriceChart.tsx 2 >& 1)"
+      "Shell(npx tsc --noEmit --pretty false components/PriceChart.tsx 2 >& 1)",
+      "Shell(node -e \"const p = require('./node_modules/lightweight-charts/package.json'); console.log(p.version);\")",
+      "Shell(node -e \"const lc = require('lightweight-charts'); console.log(Object.keys(lc).filter(k => k.includes('Series') || k.includes('Chart') || k.includes('add')).join(', '));\")",
+      "Shell(npx tsc --noEmit 2 >& 1)",
+      "Shell(findstr:*)",
+      "Shell(npx tsc --noEmit --pretty false 2 >& 1)",
+      "Shell(Select-String:*)",
+      "powershell",
+      "Shell(git:*)"
     ],
     "deny": [],
     "defaultMode": "default"
