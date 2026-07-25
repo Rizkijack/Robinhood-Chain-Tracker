@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { PoolSummary, TokenDetail, TrackedPair } from "@/lib/types";
+import type { PoolSummary, TokenDetail, TokenSecurity, TrackedPair } from "@/lib/types";
 import { CHAIN } from "@/lib/constants";
 import {
   formatAge,
@@ -63,6 +63,9 @@ export function TokenDetailModal({
     "custom" | "gecko" | "birdeye" | "dexscreener"
   >("gecko");
 
+  const [security, setSecurity] = useState<TokenSecurity | null>(null);
+  const [securityLoading, setSecurityLoading] = useState(true);
+
   const address = pair.tokenAddress || pair.pairAddress;
   const dexUrl = `https://dexscreener.com/${CHAIN.id}/${pair.pairAddress || pair.tokenAddress}`;
   const { isWatched, toggle } = useWatchlist();
@@ -92,6 +95,32 @@ export function TokenDetailModal({
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSecurityLoading(true);
+
+    if (!address) {
+      setSecurityLoading(false);
+      return;
+    }
+
+    fetch(`/api/token/${address}/security`)
+      .then(async (r) => {
+        const j = (await r.json()) as { security?: TokenSecurity; error?: string };
+        if (!cancelled) setSecurity(j.security ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setSecurity(null);
+      })
+      .finally(() => {
+        if (!cancelled) setSecurityLoading(false);
       });
 
     return () => {
@@ -179,6 +208,45 @@ export function TokenDetailModal({
             <PctCell value={token.priceChange24h} />
           </div>
         </header>
+
+        {securityLoading ? (
+          <div className="dsec-loading"><div className="spinner" /> Scanning security…</div>
+        ) : security ? (
+          <section className="dsec">
+            <div className="dsec-badge" data-level={security.riskLevel}>
+              <span className="dsec-score">{security.riskScore}</span>
+              <span className="dsec-label">{security.riskLevel}</span>
+            </div>
+            <div className="dsec-flags">
+              {security.is_honeypot && <span className="dsec-flag critical">Honeypot</span>}
+              {security.cannot_buy && <span className="dsec-flag critical">Cannot Buy</span>}
+              {security.cannot_sell_all && <span className="dsec-flag critical">Cannot Sell All</span>}
+              {security.is_airdrop_scam && <span className="dsec-flag critical">Airdrop Scam</span>}
+              {security.buy_tax > 5 && <span className="dsec-flag warn">Buy Tax {security.buy_tax}%</span>}
+              {security.sell_tax > 5 && <span className="dsec-flag warn">Sell Tax {security.sell_tax}%</span>}
+              {security.hidden_owner && <span className="dsec-flag warn">Hidden Owner</span>}
+              {security.is_blacklisted && <span className="dsec-flag warn">Blacklist</span>}
+              {security.transfer_pausable && <span className="dsec-flag warn">Pausable</span>}
+              {security.is_mintable && <span className="dsec-flag warn">Mintable</span>}
+              {security.is_proxy && <span className="dsec-flag warn">Proxy</span>}
+              {security.selfdestruct && <span className="dsec-flag warn">Selfdestruct</span>}
+              {security.can_take_back_ownership && <span className="dsec-flag warn">Ownership Back</span>}
+              {security.owner_change_balance && <span className="dsec-flag warn">Owner Can Change</span>}
+              {security.trading_cooldown && <span className="dsec-flag warn">Cooldown</span>}
+              {!security.is_open_source && <span className="dsec-flag warn">Closed Source</span>}
+              {security.holder_count > 0 && security.holder_count < 50 && (
+                <span className="dsec-flag warn">Under 50 Holders</span>
+              )}
+              {security.anti_whale_modifiable && <span className="dsec-flag warn">Anti-Whale Modifiable</span>}
+              {security.personal_slippage_modifiable && <span className="dsec-flag warn">Slippage Modifiable</span>}
+            </div>
+            {security.riskLevel !== "safe" && security.riskLevel !== "low" && (
+              <div className="dsec-note muted">
+                ⚠️ Powered by GoPlus. Always DYOR.
+              </div>
+            )}
+          </section>
+        ) : null}
 
         <section className="dstats">
           <Stat label="Price" value={formatPrice(token.priceUsd)} />

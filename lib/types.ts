@@ -114,6 +114,44 @@ export interface TokenDetail {
   recommendedRefreshMs?: number;
 }
 
+/** GoPlus / DexScreener token security assessment */
+export interface TokenSecurity {
+  is_honeypot: boolean;
+  is_open_source: boolean;
+  is_proxy: boolean;
+  is_mintable: boolean;
+  cannot_buy: boolean;
+  cannot_sell_all: boolean;
+  is_blacklisted: boolean;
+  is_whitelisted: boolean;
+  hidden_owner: boolean;
+  selfdestruct: boolean;
+  external_call: boolean;
+  transfer_pausable: boolean;
+  trading_cooldown: boolean;
+  anti_whale_modifiable: boolean;
+  personal_slippage_modifiable: boolean;
+  owner_change_balance: boolean;
+  can_take_back_ownership: boolean;
+  is_airdrop_scam: boolean;
+  is_anti_whale: boolean;
+  buy_tax: number;
+  sell_tax: number;
+  holder_count: number;
+  lp_holder_count: number;
+  lp_total_supply: number | null;
+  owner_address: string;
+  owner_balance: string;
+  creator_address: string;
+  creator_balance: string;
+  /** Computed risk score 0-100 (0 = safest) */
+  riskScore: number;
+  /** Computed risk level label */
+  riskLevel: "safe" | "low" | "medium" | "high" | "critical";
+  /** Raw GoPlus result (for debugging / display) */
+  raw: Record<string, string>;
+}
+
 export interface StatsResponse {
   updatedAt: string;
   newPairs: number;
