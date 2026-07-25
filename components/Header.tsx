@@ -57,13 +57,16 @@ export function Header() {
             <path d="M20 20l-3.5-3.5" />
           </svg>
           <input
+            id="global-search-input"
             className="search"
             type="search"
-            placeholder="Cari token, pair, atau address..."
+            placeholder="Cari token, pair, atau address... (Ctrl+K /)"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             autoComplete="off"
+            title="Tekan Ctrl+K atau / untuk fokus ke sini"
           />
+          <kbd className="shortcut-hint">Ctrl+K</kbd>
         </form>
 
         <div className="header-right">

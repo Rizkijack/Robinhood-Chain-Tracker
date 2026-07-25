@@ -10,6 +10,7 @@ import {
   shortAddr,
 } from "@/lib/format";
 import { SourceBadges } from "./SourceBadges";
+import { PairCardView } from "./PairCardView";
 import { WatchlistStar, useWatchlist } from "./Watchlist";
 
 const ROWS_OPTIONS = [25, 50, 100] as const;
@@ -230,13 +231,15 @@ export function PairTable({
   }
 
   return (
-    <div className="table-wrap">
-      <div className="table-scroll">
-        <table className="pairs">
-          <thead>
-            <tr>
-              <th style={{ width: 40 }}>#</th>
-              <th>Token</th>
+    <>
+      {/* Desktop: table view (hidden on mobile via CSS .table-scroll) */}
+      <div className="table-wrap">
+        <div className="table-scroll">
+          <table className="pairs">
+            <thead>
+              <tr>
+                <th style={{ width: 40 }}>#</th>
+                <th>Token</th>
               <th style={{ width: 32 }}></th>
               <th>Age</th>
               <th>DEX</th>
@@ -432,6 +435,14 @@ export function PairTable({
         }}
         totalItems={pairs.length}
       />
-    </div>
+      </div>
+
+      {/* Mobile: card view (hidden on desktop via CSS .card-view-wrap) */}
+      <PairCardView
+        pairs={pairs}
+        emptyMessage={emptyMessage}
+        onSelect={onSelect}
+      />
+    </>
   );
 }

@@ -10,6 +10,7 @@ import "./styles/header.css";
 import "./styles/stats.css";
 import "./styles/controls.css";
 import "./styles/table.css";
+import "./styles/cardview.css";
 import "./styles/meta.css";
 import "./styles/footer.css";
 import "./styles/states.css";
@@ -57,6 +58,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
+
 export default function RootLayout({
   children,
 }: {
@@ -69,7 +72,10 @@ export default function RootLayout({
         <meta name="theme-color" content="#0c1017" />
       </head>
       <body>
-        <WalletProviders>{children}</WalletProviders>
+        <WalletProviders>
+          {children}
+          <KeyboardShortcuts />
+        </WalletProviders>
         <Script id="sw-register" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
