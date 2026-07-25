@@ -12,6 +12,7 @@ import {
 import { SourceBadges } from "./SourceBadges";
 import { PairCardView } from "./PairCardView";
 import { WatchlistStar, useWatchlist } from "./Watchlist";
+import { SocialLinks } from "./SocialLinks";
 
 const ROWS_OPTIONS = [25, 50, 100] as const;
 
@@ -250,9 +251,10 @@ export function PairTable({
               <th className="num">Liq</th>
               <th className="num">Vol 1h</th>
               <th className="num">Txns</th>
-              <th className="num">MCap</th>
-              <th>Src</th>
-              <th>Links</th>
+               <th className="num">MCap</th>
+               <th>Src</th>
+               <th>Social</th>
+               <th>Links</th>
             </tr>
           </thead>
           <tbody>
@@ -382,6 +384,9 @@ export function PairTable({
                 </td>
                 <td>
                   <SourceBadges sources={p.sources} />
+                </td>
+                <td>
+                  <SocialLinks pair={p} compact maxLinks={3} />
                 </td>
                 <td>
                   <div

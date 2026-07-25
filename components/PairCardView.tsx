@@ -25,6 +25,7 @@ import {
 } from "@/lib/format";
 import { SourceBadges } from "./SourceBadges";
 import { WatchlistStar, useWatchlist } from "./Watchlist";
+import { SocialLinks } from "./SocialLinks";
 
 const ROWS_OPTIONS = [25, 50, 100] as const;
 
@@ -408,6 +409,7 @@ export function PairCardView({
                 onClick={(e) => e.stopPropagation()}
               >
                 <SourceBadges sources={p.sources} />
+                <SocialLinks pair={p} compact maxLinks={3} />
                 <div className="pc-links">
                   <a href={p.links.dexscreener} target="_blank" rel="noreferrer" title="DexScreener">
                     DexS

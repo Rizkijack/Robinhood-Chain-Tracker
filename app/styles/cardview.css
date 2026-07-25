@@ -387,3 +387,30 @@
     transition: none !important;
   }
 }
+
+/* ── Card Footer: Social Links ──────────────────── */
+.pc-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 12px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.pc-foot .social-links {
+  justify-content: flex-start;
+}
+
+.pc-foot .pc-links {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.pc-foot .pc-links a,
+.pc-foot .pc-links button {
+  padding: 2px 5px;
+  font-size: 10px;
+  border-radius: 4px;
+  line-height: 1.4;
+}
