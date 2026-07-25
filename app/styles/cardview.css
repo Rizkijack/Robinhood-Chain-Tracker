@@ -1,0 +1,389 @@
+/* ── Card View (Mobile < 768px) ────────────────────── */
+
+/* Wrapper toggle: hidden on desktop, shown on mobile */
+@media (min-width: 769px) {
+  .card-view-wrap {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-scroll {
+    display: none !important;
+  }
+
+  .table-wrap {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    margin-bottom: 0;
+  }
+}
+
+/* ── Card List ───────────────────────────────────── */
+.card-view-wrap {
+  width: 100%;
+  padding-bottom: var(--sp-4);
+}
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 8px;
+}
+
+/* ── Pair Card ──────────────────────────────────── */
+.pair-card {
+  background:
+    linear-gradient(180deg, rgba(61, 139, 253, 0.02), transparent 120px),
+    var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  transition: background 0.12s, border-color 0.12s, transform 0.1s;
+}
+
+.pair-card:hover {
+  background: var(--bg-hover);
+  border-color: rgba(61, 139, 253, 0.18);
+}
+
+.pair-card.card-clickable {
+  cursor: pointer;
+}
+
+.pair-card.card-clickable:active {
+  transform: scale(0.99);
+}
+
+/* ── Card Head ──────────────────────────────────── */
+.pc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 12px 8px;
+}
+
+.pc-token {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pc-token-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.pc-token-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.pc-rank {
+  color: var(--text-mute);
+  font-size: 11px;
+  font-family: var(--mono);
+  font-weight: 500;
+  background: var(--bg-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.pc-pair-line {
+  color: var(--text-mute);
+  font-size: 11px;
+  font-family: var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  : ellipsis;
+}
+
+.pc-addr {
+  margin-top: 6px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--bg-0);
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.pc-addr:hover {
+  border-color: #314365;
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.pc-head-right {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Price Row ──────────────────────────────────── */
+.pc-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px 8px;
+  border-top: 1px solid var(--line-soft);
+  margin-top: 4px;
+}
+
+.pc-price .mono {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-pct-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pc-pct-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.pc-pct-cell .pct {
+  min-width: 52px;
+  padding: 1px 6px;
+  font-size: 11px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+
+.pc-pct-cell .pct-label {
+  font-size: 9px;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 500;
+}
+
+/* ── Empty State ───────────────────────────────── */
+.card-view-wrap .empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-mute);
+  font-size: 13px;
+}
+
+/* ── Pagination in Card View ───────────────────── */
+.card-view-wrap .pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 0 -8px 8px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12px;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+  background: var(--bg-0);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.card-view-wrap .pagination .pg-summary strong {
+  color: var(--text);
+}
+
+.card-view-wrap .pagination nav[aria-label="Pagination"] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.card-view-wrap .pagination .pg-rows {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-view-wrap .pagination .pg-rows .selectish {
+  height: 28px;
+  font-size: 12px;
+  padding: 0 24px 0 8px;
+}
+
+.card-view-wrap .page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.card-view-wrap .page-btn:hover:not(:disabled) {
+  background: var(--bg-3);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.card-view-wrap .page-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.card-view-wrap .page-btn-active {
+  background: var(--accent-soft) !important;
+  border-color: rgba(61, 139, 253, 0.25) !important;
+  color: var(--accent) !important;
+}
+
+.card-view-wrap .page-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.card-view-wrap .pg-ellipsis {
+  padding: 0 4px;
+  color: var(--text-mute);
+}
+
+/* ── Flash Animations (shared with table) ───────── */
+.flash-update {
+  animation: flashGreen 1s ease-out;
+}
+
+@keyframes flashGreen {
+  0% {
+    background-color: rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+  }
+  100% {
+    background-color: transparent;
+    color: inherit;
+  }
+}
+
+.pct.down.flash-update {
+  animation: flashRed 1s ease-out;
+}
+
+@keyframes flashRed {
+  0% {
+    background-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+  }
+  100% {
+    background-color: var(--red-soft);
+    color: var(--red);
+  }
+}
+
+.pct.up.flash-update {
+  animation: flashGreenStrong 1s ease-out;
+}
+
+@keyframes flashGreenStrong {
+  0% {
+    background-color: rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+  }
+  100% {
+    background-color: var(--green-soft);
+    color: var(--green);
+  }
+}
+
+/* ── Small phones (< 380px) ───────────────────── */
+@media (max-width: 380px) {
+  .pc-head {
+    padding: 10px 10px 6px;
+    gap: 8px;
+  }
+
+  .pc-price-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px 6px;
+  }
+
+  .pc-pct-row {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .pc-pct-cell {
+    flex: 1;
+  }
+
+  .pc-pct-cell .pct {
+    min-width: 0;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .token-icon {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 10px;
+  }
+
+  .card-list {
+    gap: 8px;
+    padding: 0 6px;
+  }
+
+  .card-view-wrap .pagination {
+    padding: 10px 12px;
+    margin: 0 -6px 6px;
+    font-size: 11px;
+  }
+
+  .card-view-wrap .page-btn {
+    min-width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+
+  .card-view-wrap .pagination .pg-rows .selectish {
+    height: 26px;
+    font-size: 11px;
+    padding: 0 20px 0 6px;
+  }
+}
+
+/* ── Reduced motion ────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .flash-update {
+    animation: none !important;
+  }
+
+  .pair-card {
+    transition: none !important;
+  }
+}
