@@ -1,214 +1,143 @@
 /**
- * Shared TypeScript types for the hybrid blockchain streaming system.
+ * Types for the hybrid WebSocket streaming system.
  *
- * The system uses a 3-tier defense strategy:
- *   Tier 1: WebSocket (primary, sub-second latency)
- *   Tier 2: SSE (skipped for MVP — see design doc)
- *   Tier 3: HTTP polling (existing stable system, silent fallback)
+ * Tier 1: WebSocket (Alchemy WSS) — sub-second latency
+ * Tier 3: HTTP Polling (existing system) — silent fallback
  *
- * This module is safe to import from both client and server code —
- * it contains only types, no runtime values.
+ * Tier 2 (SSE) is intentionally skipped for MVP.
  */
 
-/* ── Connection state ──────────────────────────────────────── */
+/** Blockchain event types we can subscribe to via WebSocket. */
+export type SubscriptionType = "newHeads" | "logs" | "newPendingTransactions";
 
-/**
- * Which transport is currently carrying real-time data.
- * - `websocket`: Tier 1 active — direct WSS to blockchain node.
- * - `polling`: Tier 3 active — falling back to existing HTTP polling.
- *
- * The connection-manager never exposes an "error" method because
- * failures are silent: if WebSocket dies, polling takes over without
- * interrupting the user.
- */
-export type ConnectionMethod = "websocket" | "polling";
+/** The connection method currently in use. */
+export type ConnectionMethod = "websocket" | "sse" | "polling";
 
-/**
- * High-level status of the streaming connection.
- *
- * The state machine transitions are:
- *   connecting → connected (websocket | polling)
- *   connected  → reconnecting (WS dropped, trying again)
- *   reconnecting → connected (websocket | polling)
- *   any → disconnected (manual shutdown only)
- */
+/** Connection status states for UI display. */
 export type ConnectionStatus =
-  | "connecting"
-  | "connected"
-  | "reconnecting"
-  | "disconnected";
+  | { state: "connecting"; method?: ConnectionMethod }
+  | { state: "connected"; method: ConnectionMethod; latency: number }
+  | { state: "fallback"; from: "websocket"; reason: string }
+  | { state: "error"; message: string };
 
-/**
- * Why the system is using its current method. Useful for tooltips
- * and debugging. Empty string means "default / no special reason".
- */
-export type FallbackReason =
-  | ""
-  | "ws-timeout"
-  | "ws-error"
-  | "ws-closed"
-  | "ws-unavailable"
-  | "manual";
-
-/* ── JSON-RPC 2.0 (Ethereum-style subscriptions) ───────────── */
-
-/**
- * Ethereum JSON-RPC subscription types supported by Alchemy WSS.
- * See https://docs.alchemy.com/reference/eth-subscribe-api
- *
- * - `newHeads`: fires on every new block (header).
- * - `newPendingTransactions`: fires on every pending tx hash.
- * - `logs`: fires when a log matching the filter is emitted.
- */
-export type SubscriptionType =
-  | "newHeads"
-  | "newPendingTransactions"
-  | "logs";
-
-/** Params for an `eth_subscribe` request. */
-export type SubscriptionParams =
-  | [SubscriptionType] // newHeads / newPendingTransactions
-  | [SubscriptionType, { address?: string; topics?: string[] }]; // logs
-
-/** Request payload sent over WebSocket to start a subscription. */
-export interface JsonRpcRequest {
+/** A JSON-RPC 2.0 subscription request. */
+export interface SubscriptionRequest {
   id: number;
   jsonrpc: "2.0";
   method: "eth_subscribe" | "eth_unsubscribe";
-  params: SubscriptionParams | [string]; // [subscriptionId] for unsubscribe
+  params: [SubscriptionType, ...unknown[]] | [string];
 }
 
-/** Successful subscription confirmation response. */
-export interface JsonRpcSubscriptionResponse {
-  id: number;
+/** A JSON-RPC 2.0 response (subscription confirmation or error). */
+export interface JsonRpcResponse {
   jsonrpc: "2.0";
-  result: string; // subscription ID (hex)
+  id: number;
+  result?: string | boolean;
+  error?: { code: number; message: string };
 }
 
-/** Streaming event payload pushed by the node. */
-export interface JsonRpcEvent {
+/** A real-time blockchain event pushed from the node. */
+export interface BlockchainEvent {
   jsonrpc: "2.0";
   method: "eth_subscription";
   params: {
     subscription: string;
-    result: BlockchainEvent;
+    result: Record<string, unknown>;
   };
 }
 
-/** Error response from the node. */
-export interface JsonRpcError {
-  id: number | null;
-  jsonrpc: "2.0";
-  error: { code: number; message: string };
-}
-
-export type WebSocketMessage =
-  | JsonRpcSubscriptionResponse
-  | JsonRpcEvent
-  | JsonRpcError;
-
-/* ── Blockchain event payloads ─────────────────────────────── */
-
-/**
- * New block header (result of `newHeads` subscription).
- * All fields are hex-encoded strings as returned by the node.
- */
-export interface NewHeadsEvent {
-  baseFeePerGas?: string;
-  difficulty?: string;
-  extraData?: string;
-  gasLimit?: string;
-  gasUsed?: string;
-  hash?: string;
-  logsBloom?: string;
-  miner?: string;
-  mixHash?: string;
-  nonce?: string;
-  number?: string;
-  parentHash?: string;
-  receiptsRoot?: string;
-  sha3Uncles?: string;
-  stateRoot?: string;
-  timestamp?: string;
-  totalDifficulty?: string;
-  transactionsRoot?: string;
-}
-
-/** Pending transaction hash (result of `newPendingTransactions`). */
-export interface PendingTxEvent {
-  hash: string;
-  from?: string;
-  to?: string;
-}
-
-/** Log entry (result of `logs` subscription). */
-export interface LogEvent {
-  address: string;
-  topics: string[];
-  data: string;
-  blockNumber?: string;
-  transactionHash?: string;
-  transactionIndex?: string;
-  blockHash?: string;
-  logIndex?: string;
-  removed?: boolean;
-}
-
-/** Discriminated union of all blockchain events we may receive. */
-export type BlockchainEvent =
-  | NewHeadsEvent
-  | PendingTxEvent
-  | LogEvent
-  | Record<string, unknown>;
-
-/* ── Public events emitted by the WebSocket client ──────────── */
-
-/**
- * Events emitted by the WebSocket client. Defined as a mapped type so
- * it satisfies the `Record<string, unknown>` constraint used by the
- * Emitter base class (plain interfaces don't carry an index signature).
- */
-export type ClientEvents = {
-  /** Fired when the WS handshake completes successfully. */
-  open: { url: string; latencyMs: number };
-  /** Fired for every blockchain event pushed by the node. */
-  event: { subscription: string; data: BlockchainEvent };
-  /** Fired when the connection drops (will trigger reconnect logic). */
-  close: { code: number; reason: string; wasClean: boolean };
-  /** Fired on any WS error — always non-fatal, used for diagnostics. */
-  error: { message: string };
-  /** Fired when a subscription is confirmed by the node. */
-  subscribed: { subscriptionId: string; type: SubscriptionType };
-  /** Fired when max reconnect attempts exhausted (permanent fallback). */
-  fallback: { reason: FallbackReason };
+/** WebSocket client events (event emitter pattern). */
+export type WebSocketEventMap = {
+  open: () => void;
+  message: (event: BlockchainEvent | JsonRpcResponse) => void;
+  error: (error: Error) => void;
+  close: (code: number, reason: string) => void;
+  connecting: () => void;
 };
 
-/* ── Connection manager snapshot ────────────────────────────── */
-
-/**
- * Read-only snapshot of the connection-manager state.
- * The React hooks subscribe to this so they re-render on changes.
- */
-export interface ConnectionSnapshot {
-  status: ConnectionStatus;
-  method: ConnectionMethod;
-  reason: FallbackReason;
-  /** How many times we've tried to reconnect (resets on success). */
-  reconnectAttempts: number;
-  /** Latest block number if known (hex string from newHeads). */
-  latestBlock: string | null;
-  /** Latency of the most recent successful handshake (ms). */
-  latencyMs: number | null;
-  /** ISO timestamp of last received event. */
-  lastEventAt: number | null;
+/** Configuration for the WebSocket client. */
+export interface WebSocketClientConfig {
+  /** WebSocket URL (wss://...) */
+  url: string;
+  /** Connection timeout in milliseconds (default: 3000) */
+  timeoutMs?: number;
+  /** Max reconnect attempts (default: 3) */
+  maxReconnects?: number;
+  /** Base delay for exponential backoff in ms (default: 1000) */
+  reconnectBaseDelayMs?: number;
+  /** Max delay for exponential backoff in ms (default: 30000) */
+  reconnectMaxDelayMs?: number;
 }
 
+/** Configuration for the connection manager. */
+export interface ConnectionManagerConfig {
+  /** WebSocket URL — if empty, skip to polling */
+  wsUrl?: string;
+  /** WebSocket client config */
+  wsConfig?: Omit<WebSocketClientConfig, "url">;
+}
+
+/** Configuration for the SSE client. */
+export interface SSEClientConfig {
+  /** SSE URL (http://... or https://...) */
+  url: string;
+  /** Connection timeout in milliseconds (default: 5000) */
+  timeoutMs?: number;
+  /** Max reconnect attempts (default: 3) */
+  maxReconnects?: number;
+  /** Base delay for exponential backoff in ms (default: 1000) */
+  reconnectBaseDelayMs?: number;
+  /** Max delay for exponential backoff in ms (default: 30000) */
+  reconnectMaxDelayMs?: number;
+  /** Additional headers for the SSE connection */
+  headers?: Record<string, string>;
+}
+
+/** Connection snapshot for UI state. */
+export interface ConnectionSnapshot {
+  status: "connecting" | "connected" | "reconnecting" | "error";
+  method: ConnectionMethod;
+  reason: string;
+  latestBlock: string | null;
+  latencyMs: number | null;
+  lastEventAt: number | null;
+  reconnectAttempts: number;
+}
+
+/** Initial snapshot state. */
 export const INITIAL_SNAPSHOT: ConnectionSnapshot = {
-  status: "disconnected",
+  status: "connecting",
   method: "polling",
   reason: "",
-  reconnectAttempts: 0,
   latestBlock: null,
   latencyMs: null,
   lastEventAt: null,
+  reconnectAttempts: 0,
 };
+
+/** Reason for fallback to polling. */
+export type FallbackReason = 
+  | "ws-unavailable"
+  | "ws-error"
+  | "ws-closed"
+  | "sse-error"
+  | "sse-closed"
+  | "streaming-unavailable"
+  | "streaming-error"
+  | "manual";
+
+/** Blockchain node configuration. */
+export interface BlockchainNodeConfig {
+  /** Node name for display */
+  name: string;
+  /** WebSocket URL (wss://...) */
+  wsUrl?: string;
+  /** SSE URL (http://... or https://...) */
+  sseUrl?: string;
+  /** HTTP RPC URL for polling */
+  httpUrl?: string;
+  /** Chain ID */
+  chainId: number;
+  /** Whether this node supports native subscriptions */
+  supportsSubscriptions: boolean;
+}

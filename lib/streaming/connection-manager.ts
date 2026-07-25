@@ -2,195 +2,247 @@
  * Connection manager — orchestrates the 3-tier hybrid defense system.
  *
  * Responsibilities:
- *   1. Try Tier 1 (WebSocket) first. If it fails within 3s, fall back
+ *   1. Try Tier 1 (WebSocket or SSE) first. If it fails within 3s, fall back
  *      silently to Tier 3 (polling) — the existing system keeps running.
- *   2. Translate raw WebSocket client events into a clean snapshot
+ *   2. Translate raw client events into a clean snapshot
  *      that React hooks can subscribe to.
  *   3. Track the latest block number from `newHeads` events so the UI
- *      can show "Block #N" in real-time when WS is active.
+ *      can show "Block #N" in real-time when streaming is active.
  *
  * Why a separate manager (not inside the React hook)?
  *   - The connection lifecycle spans multiple component mounts/unmounts.
- *   - We want exactly one WS connection per app instance, not per hook.
+ *   - We want exactly one connection per app instance, not per hook.
  *   - The manager is a singleton; the hook is a thin React wrapper.
  *
- * Browser-only. Importing on the server is safe (the WS client guards
- * `typeof WebSocket`), but `start()` will resolve to polling mode.
+ * Browser-only. Importing on the server is safe (the clients guard
+ * `typeof WebSocket` and `typeof EventSource`), but `start()` will resolve to polling mode.
  */
 
-import { BlockchainWebSocketClient } from "./websocket-client";
+import { WebSocketClient as BlockchainWebSocketClient } from "./websocket-client";
+import { SSEClient } from "./sse-client";
 import {
   INITIAL_SNAPSHOT,
   type ConnectionMethod,
   type ConnectionSnapshot,
   type FallbackReason,
   type SubscriptionType,
+  type BlockchainNodeConfig,
 } from "./types";
 
-/* ── Singleton ───────────────────────────────────────────────── */
+/** Blockchain node configuration presets. */
+export const BLOCKCHAIN_NODES: Record<string, BlockchainNodeConfig> = {
+  ethereum: {
+    name: "Ethereum Mainnet",
+    wsUrl: process.env.NEXT_PUBLIC_ETH_WSS_URL,
+    sseUrl: process.env.NEXT_PUBLIC_ETH_SSE_URL,
+    httpUrl: process.env.NEXT_PUBLIC_ETH_RPC_URL,
+    chainId: 1,
+    supportsSubscriptions: true,
+  },
+  polygon: {
+    name: "Polygon",
+    wsUrl: process.env.NEXT_PUBLIC_POLYGON_WSS_URL,
+    sseUrl: process.env.NEXT_PUBLIC_POLYGON_SSE_URL,
+    httpUrl: process.env.NEXT_PUBLIC_POLYGON_RPC_URL,
+    chainId: 137,
+    supportsSubscriptions: true,
+  },
+  bsc: {
+    name: "BNB Smart Chain",
+    wsUrl: process.env.NEXT_PUBLIC_BSC_WSS_URL,
+    sseUrl: process.env.NEXT_PUBLIC_BSC_SSE_URL,
+    httpUrl: process.env.NEXT_PUBLIC_BSC_RPC_URL,
+    chainId: 56,
+    supportsSubscriptions: true,
+  },
+};
+
+type StreamingClient = BlockchainWebSocketClient | SSEClient | null;
 
 class ConnectionManager {
-  private client: BlockchainWebSocketClient | null = null;
+  private client: StreamingClient = null;
   private snapshot: ConnectionSnapshot = { ...INITIAL_SNAPSHOT };
   private listeners = new Set<(s: ConnectionSnapshot) => void>();
   private started = false;
+  private connectionMethod: "websocket" | "sse" | null = null;
 
-  /** The subscriptions to auto-start once WS connects. */
+  /** The subscriptions to auto-start once connection is established. */
   private readonly defaultSubs: SubscriptionType[] = ["newHeads"];
 
   /**
    * Boot the streaming system. Idempotent: calling twice is a no-op.
-   *
-   * Flow:
-   *   1. If NEXT_PUBLIC_WSS_URL is unset/empty → polling immediately.
-   *   2. Try WS connect with 3s timeout.
-   *   3. On success → subscribe to defaultSubs, method = "websocket".
-   *   4. On failure → method = "polling" (silent, no UI interruption).
    */
-  start(url: string | undefined): void {
+  start(wsUrl?: string, sseUrl?: string): void {
     if (this.started) return;
     this.started = true;
     this.snapshot = {
       ...this.snapshot,
       status: "connecting",
-      method: "polling", // assume polling until WS proves itself
+      method: "polling",
     };
     this.emit();
 
-    // No WSS URL configured → skip Tier 1 entirely.
-    const wssUrl = url?.trim();
-    if (!wssUrl) {
+    const trimmedWsUrl = wsUrl?.trim();
+    const trimmedSseUrl = sseUrl?.trim();
+
+    if (!trimmedWsUrl && !trimmedSseUrl) {
       this.snapshot = {
         ...this.snapshot,
         status: "connected",
         method: "polling",
-        reason: "ws-unavailable",
+        reason: "streaming-unavailable",
       };
       this.emit();
       return;
     }
 
-    this.client = new BlockchainWebSocketClient();
+    if (trimmedWsUrl) {
+      this.connectWithWebSocket(trimmedWsUrl);
+    } else if (trimmedSseUrl) {
+      this.connectWithSSE(trimmedSseUrl);
+    }
+  }
 
-    // ── Wire up client events ──────────────────────────────────
-    this.client.on("open", ({ latencyMs }) => {
+  private connectWithWebSocket(wsUrl: string): void {
+    this.connectionMethod = "websocket";
+    this.client = new BlockchainWebSocketClient({ url: wsUrl });
+
+    this.client.on("open", () => {
       this.snapshot = {
         ...this.snapshot,
         status: "connected",
         method: "websocket",
         reason: "",
         reconnectAttempts: 0,
-        latencyMs,
+        latencyMs: 0,
       };
       this.emit();
 
-      // Start the default subscriptions once the socket is open.
       for (const type of this.defaultSubs) {
         this.client?.subscribe(type);
       }
     });
 
-    this.client.on("subscribed", ({ type }) => {
-      // Could be used for diagnostics; nothing to update in the snapshot.
-      void type;
-    });
-
-    this.client.on("event", ({ data }) => {
-      // Extract block number from newHeads events.
-      if (data && typeof data === "object" && "number" in data) {
-        const blockNum = (data as { number?: string }).number;
-        if (typeof blockNum === "string") {
-          this.snapshot = {
-            ...this.snapshot,
-            latestBlock: blockNum,
-            lastEventAt: Date.now(),
-          };
-          this.emit();
-        }
-      } else {
-        // Non-newHeads event — just bump the activity timestamp.
-        this.snapshot = {
-          ...this.snapshot,
-          lastEventAt: Date.now(),
-        };
-        this.emit();
+    this.client.on("message", (data) => {
+      if ("params" in data && data.method === "eth_subscription") {
+        this.handleEventData((data as any).params.result);
       }
     });
 
     this.client.on("close", () => {
-      // WS dropped. Don't switch to "polling" immediately — the
-      // existing polling layer keeps running independently. Just
-      // flag that we're in a degraded state so the UI can reflect it.
-      if (this.snapshot.method === "websocket") {
-        this.snapshot = {
-          ...this.snapshot,
-          status: "reconnecting",
-          // method stays "websocket" until reconnect fails for good,
-          // so the UI shows "reconnecting" rather than flickering.
-        };
-        this.emit();
-      }
+      this.handleConnectionClose();
     });
 
-    this.client.on("fallback", ({ reason }) => {
-      // Reconnect attempts exhausted — permanent fallback to polling.
+    this.client.on("error", (error) => {
+      console.error("WebSocket error:", error);
+    });
+
+    void this.client.connect();
+  }
+
+  private connectWithSSE(sseUrl: string): void {
+    this.connectionMethod = "sse";
+    this.client = new SSEClient({ url: sseUrl });
+
+    this.client.on("open", () => {
       this.snapshot = {
         ...this.snapshot,
         status: "connected",
-        method: "polling",
-        reason: reason || "ws-closed",
+        method: "sse",
+        reason: "",
         reconnectAttempts: 0,
+        latencyMs: 0,
       };
       this.emit();
+
+      for (const type of this.defaultSubs) {
+        this.client?.subscribe(type);
+      }
     });
 
-    // Kick off the initial connection attempt (3s timeout).
-    void this.client.connect(wssUrl).then((result) => {
-      if (!result.ok) {
-        // WS failed to connect within 3s — silent fallback to polling.
+    this.client.on("message", (data) => {
+      if ("params" in data && data.method === "eth_subscription") {
+        this.handleEventData((data as any).params.result);
+      }
+    });
+
+    this.client.on("close", () => {
+      this.handleConnectionClose();
+    });
+
+    this.client.on("error", (error) => {
+      console.error("SSE error:", error);
+    });
+
+    void this.client.connect();
+  }
+
+  private handleEventData(data: unknown): void {
+    if (data && typeof data === "object" && "number" in data) {
+      const blockNum = (data as { number?: string }).number;
+      if (typeof blockNum === "string") {
         this.snapshot = {
           ...this.snapshot,
-          status: "connected",
-          method: "polling",
-          reason: result.reason || "ws-error",
-          latencyMs: null,
+          latestBlock: blockNum,
+          lastEventAt: Date.now(),
         };
         this.emit();
       }
-      // If result.ok, the "open" event handler above already updated
-      // the snapshot to "websocket".
-    });
+    } else {
+      this.snapshot = {
+        ...this.snapshot,
+        lastEventAt: Date.now(),
+      };
+      this.emit();
+    }
   }
 
-  /** Shut down the WS connection. Polling is unaffected. */
+  private handleConnectionClose(): void {
+    const currentMethod = this.snapshot.method;
+    if (currentMethod === "websocket" || currentMethod === "sse") {
+      this.snapshot = {
+        ...this.snapshot,
+        status: "reconnecting",
+      };
+      this.emit();
+    }
+  }
+
   stop(): void {
-    this.client?.disconnect();
+    if (this.client) {
+      if ("disconnect" in this.client) {
+        this.client.disconnect();
+      }
+    }
     this.client = null;
     this.started = false;
+    this.connectionMethod = null;
     this.snapshot = { ...INITIAL_SNAPSHOT };
     this.emit();
   }
 
-  /** Get a read-only copy of the current state. */
   getSnapshot(): ConnectionSnapshot {
     return { ...this.snapshot };
   }
 
-  /** Subscribe to snapshot changes. Returns an unsubscribe function. */
   subscribe(listener: (s: ConnectionSnapshot) => void): () => void {
     this.listeners.add(listener);
-    // Immediately emit current state to new subscribers.
     listener(this.getSnapshot());
     return () => {
       this.listeners.delete(listener);
     };
   }
 
-  /** Force a manual reconnect attempt (e.g. user clicked "retry"). */
-  retry(url: string | undefined): void {
-    const wssUrl = url?.trim();
-    if (!wssUrl) return;
-    this.client?.disconnect();
+  retry(wsUrl?: string, sseUrl?: string): void {
+    const trimmedWsUrl = wsUrl?.trim();
+    const trimmedSseUrl = sseUrl?.trim();
+
+    if (!trimmedWsUrl && !trimmedSseUrl) return;
+
+    if (this.client && "disconnect" in this.client) {
+      this.client.disconnect();
+    }
+
     this.snapshot = {
       ...this.snapshot,
       status: "connecting",
@@ -198,8 +250,12 @@ class ConnectionManager {
       reason: "manual",
     };
     this.emit();
-    if (!this.client) this.client = new BlockchainWebSocketClient();
-    void this.client.connect(wssUrl);
+
+    if (trimmedWsUrl) {
+      this.connectWithWebSocket(trimmedWsUrl);
+    } else if (trimmedSseUrl) {
+      this.connectWithSSE(trimmedSseUrl);
+    }
   }
 
   private emit(): void {
@@ -214,10 +270,6 @@ class ConnectionManager {
   }
 }
 
-/* ── Module-level singleton ────────────────────────────────────
- * One connection per browser tab. The hook (useBlockchainStream)
- * is the public surface; components never touch this directly.
- * ──────────────────────────────────────────────────────────── */
 let instance: ConnectionManager | null = null;
 
 export function getConnectionManager(): ConnectionManager {
@@ -225,11 +277,9 @@ export function getConnectionManager(): ConnectionManager {
   return instance;
 }
 
-/** Reset the singleton — test helper only. */
 export function _resetConnectionManager(): void {
   instance?.stop();
   instance = null;
 }
 
-// Re-export types that callers commonly need alongside the manager.
-export type { ConnectionMethod, ConnectionSnapshot, FallbackReason };
+export type { ConnectionMethod, ConnectionSnapshot, FallbackReason, BlockchainNodeConfig };
