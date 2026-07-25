@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import {
   createChart,
-  CrosshairMode,
+  ColorType,
+  CandlestickSeries,
+  HistogramSeries,
   type IChartApi,
-  type ISeriesApi,
   type CandlestickData,
   type HistogramData,
   type Time,
@@ -16,6 +17,8 @@ import { formatPrice, formatUsd } from "@/lib/format";
 
 const GREEN = "#16c784";
 const RED = "#ea3943";
+const GREEN_DIM = GREEN + "40";
+const RED_DIM = RED + "40";
 
 function toTime(ms: number): Time {
   return (ms / 1000) as Time;
@@ -35,8 +38,6 @@ interface TooltipState {
 export function PriceChart({ data }: { data: OhlcvPoint[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -45,7 +46,9 @@ export function PriceChart({ data }: { data: OhlcvPoint[] }) {
   }, []);
 
   useEffect(() => {
-    if (!mounted || !containerRef.current) return;
+    if (!mounted || !containerRef.current || !data.length) return;
+
+    // Cleanup previous chart
     if (chartRef.current) {
       chartRef.current.remove();
       chartRef.current = null;
@@ -55,6 +58,7 @@ export function PriceChart({ data }: { data: OhlcvPoint[] }) {
     const volumes: HistogramData[] = [];
     for (const p of data) {
       if (p.o == null || p.h == null || p.l == null || p.c == null) continue;
+      const up = p.c >= p.o;
       candles.push({
         time: toTime(p.t),
         open: p.o,
@@ -65,15 +69,18 @@ export function PriceChart({ data }: { data: OhlcvPoint[] }) {
       volumes.push({
         time: toTime(p.t),
         value: p.v ?? 0,
-        color: p.c >= p.o ? GREEN + "40" : RED + "40",
+        color: up ? GREEN_DIM : RED_DIM,
       });
     }
 
     if (candles.length < 2) return;
 
-    const chart = createChart(containerRef.current, {
+    const container = containerRef.current;
+    const chart = createChart(container, {
+      width: container.clientWidth,
+      height: container.clientHeight,
       layout: {
-        background: { color: "transparent" },
+        background: { type: ColorType.Solid, color: "transparent" },
         textColor: "#6b7280",
       },
       grid: {
@@ -81,7 +88,6 @@ export function PriceChart({ data }: { data: OhlcvPoint[] }) {
         horzLines: { color: "rgba(255,255,255,0.04)" },
       },
       crosshair: {
-        mode: CrosshairMode.Normal,
         vertLine: { color: "#6b7280", style: 3, width: 1, labelVisible: false },
         horzLine: { color: "#6b7280", style: 3, width: 1, labelVisible: false },
       },
@@ -98,7 +104,7 @@ export function PriceChart({ data }: { data: OhlcvPoint[] }) {
       handleScale: false,
     });
 
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: GREEN,
       downColor: RED,
       borderUpColor: GREEN,
@@ -112,8 +118,7 @@ export function PriceChart({ data }: { data: OhlcvPoint[] }) {
       },
     });
 
-    const volumeSeries = chart.addHistogramSeries({
-      color: GREEN + "40",
+    const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: "volume" },
       priceScaleId: "",
     });
@@ -129,9 +134,9 @@ export function PriceChart({ data }: { data: OhlcvPoint[] }) {
         setTooltip(null);
         return;
       }
-      const data = param.seriesData.get(candleSeries) as CandlestickData | undefined;
-      const volData = param.seriesData.get(volumeSeries) as HistogramData | undefined;
-      if (!data) {
+      const cd = param.seriesData.get(candleSeries) as CandlestickData | undefined;
+      const vd = param.seriesData.get(volumeSeries) as HistogramData | undefined;
+      if (!cd) {
         setTooltip(null);
         return;
       }
@@ -139,27 +144,27 @@ export function PriceChart({ data }: { data: OhlcvPoint[] }) {
         x: param.point.x,
         y: param.point.y,
         time: (param.time as number) * 1000,
-        open: data.open,
-        high: data.high,
-        low: data.low,
-        close: data.close,
-        volume: volData?.value ?? 0,
+        open: cd.open,
+        high: cd.high,
+        low: cd.low,
+        close: cd.close,
+        volume: vd?.value ?? 0,
       });
     });
 
     chart.timeScale().fitContent();
 
     const ro = new ResizeObserver(() => {
-      const c = containerRef.current;
-      if (c && chart) {
-        chart.applyOptions({ width: c.clientWidth, height: c.clientHeight });
+      if (container && chart) {
+        chart.applyOptions({
+          width: container.clientWidth,
+          height: container.clientHeight,
+        });
       }
     });
-    ro.observe(containerRef.current);
+    ro.observe(container);
 
     chartRef.current = chart;
-    candleSeriesRef.current = candleSeries;
-    volumeSeriesRef.current = volumeSeries;
 
     return () => {
       ro.disconnect();
@@ -169,7 +174,11 @@ export function PriceChart({ data }: { data: OhlcvPoint[] }) {
   }, [data, mounted]);
 
   if (!mounted) {
-    return <div className="chart-wrap"><div ref={containerRef} className="chart-svg" /></div>;
+    return (
+      <div className="chart-wrap">
+        <div ref={containerRef} className="chart-svg" />
+      </div>
+    );
   }
 
   return (
