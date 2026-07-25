@@ -17,6 +17,7 @@ import "./styles/states.css";
 import "./styles/modal.css";
 import "./styles/wallet.css";
 import "./styles/dapp.css";
+import "./styles/notifications.css";
 import "./styles/responsive.css";
 import { WalletProviders } from "@/components/WalletProviders";
 

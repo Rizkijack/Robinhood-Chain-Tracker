@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { EXTERNAL_LINKS } from "@/lib/constants";
 import { useFeedStore, useFilterStore, useUiStore } from "@/lib/store";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { NotificationSettings } from "./NotificationSettings";
 
 // Lazy-load ConnectWallet — pulls in Privy/Wagmi/viem only when needed
 const ConnectWallet = dynamic(
@@ -99,6 +100,9 @@ export function Header() {
           </button>
           <ErrorBoundary fallback={<span className="muted" style={{fontSize:11}}>Wallet err</span>}>
             <ConnectWallet />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={<span className="muted" style={{fontSize:11}}>Alerts err</span>}>
+            <NotificationSettings />
           </ErrorBoundary>
         </div>
       </div>

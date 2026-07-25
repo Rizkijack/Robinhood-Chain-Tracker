@@ -111,3 +111,30 @@ self.addEventListener("fetch", (event) => {
       }))
   );
 });
+
+// ── Notification click handling ─────────────────────────────────
+// When a browser notification is clicked, focus the tab (if open) or
+// open a new one, and optionally navigate to a URL stored in the tag.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  // Try to focus an existing client tab
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url === self.location.origin && "focus" in client) {
+          return client.focus();
+        }
+      }
+      // No existing tab — open a new one
+      if (self.clients.openWindow) {
+        return self.clients.openWindow("/");
+      }
+    })
+  );
+});
+
+// ── Notification close handling ─────────────────────────────────
+self.addEventListener("notificationclose", (event) => {
+  // Silently dismiss — no action needed
+});

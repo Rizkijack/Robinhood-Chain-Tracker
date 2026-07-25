@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import type { TrackedPair } from "@/lib/types";
 import { REFRESH_MS } from "@/lib/constants";
 import { useFeedStore, useFilterStore, useUiStore } from "@/lib/store";
+import { useNotifications } from "@/hooks/useNotifications";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { SkeletonTable, SkeletonStatCard } from "./Skeleton";
 import { Header } from "./Header";
@@ -13,6 +14,7 @@ import { Controls } from "./Controls";
 import { MetaInfo } from "./MetaInfo";
 import { Footer } from "./Footer";
 import { PairTable } from "./PairTable";
+import { ToastContainer } from "./ToastContainer";
 import { useWatchlist } from "./Watchlist";
 
 // Lazy-load wallet components — only needed when user interacts with wallet
@@ -34,6 +36,9 @@ export function TrackerApp() {
   const { tab, query, maxAgeHours, minLiq, minVol, dexFilter, setTab } = useFilterStore();
   const { autoRefresh, selected, setSelected } = useUiStore();
   const { items: watchlistItems, remove: removeFromWatchlist } = useWatchlist();
+
+  // Notification hook — watches feed changes and fires alerts
+  useNotifications();
 
   // Load initial data on mount and when tab/query changes
   useEffect(() => {
@@ -171,6 +176,8 @@ export function TrackerApp() {
       {selected && (
         <TokenDetailModal pair={selected} onClose={() => setSelected(null)} />
       )}
+
+      <ToastContainer />
     </div>
   );
 }
