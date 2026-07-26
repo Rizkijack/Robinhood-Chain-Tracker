@@ -1,6 +1,6 @@
 import { CHAIN, GECKOTERMINAL_BASE, SOURCE_TIMING } from "../constants";
 import { cached } from "../cache";
-import { fetchJsonCached, parseMaybeNumber } from "./shared";
+import { fetchJsonCached, parseMaybeNumber, collectSocialLinks } from "./shared";
 import { num } from "../format";
 import type {
   OhlcvPoint,
@@ -94,6 +94,70 @@ function geckoLinks(pairAddress: string, tokenAddress: string, coingeckoId?: str
       : `https://www.geckoterminal.com/${NETWORK}/tokens/${tokenAddress}`,
     coingecko: coingeckoId ? `https://www.coingecko.com/en/coins/${coingeckoId}` : undefined,
   };
+}
+
+/**
+ * GeckoTerminal token info response — includes socials and websites
+ * that are not available in the pool listing response.
+ */
+interface GeoTokenInfoResponse {
+  data?: {
+    id?: string;
+    type?: string;
+    attributes?: {
+      name?: string;
+      symbol?: string;
+      address?: string;
+      image_url?: string | null;
+      coingecko_coin_id?: string | null;
+      websites?: { url: string; label?: string }[];
+      socials?: { url: string; type?: string; handle?: string }[];
+    };
+  };
+}
+
+/**
+ * Fetch token info (socials, websites, image, coingecko id) from
+ * GeckoTerminal's token endpoint. Keyless call; cached per-token.
+ */
+export async function fetchTokenInfo(
+  address: string
+): Promise<{
+  socials: { type: string; url: string }[];
+  websites: { url: string; label?: string }[];
+  imageUrl: string | null;
+  coingeckoId: string | null;
+} | null> {
+  const addr = address.toLowerCase();
+  return cached(`geo:tokeninfo:${addr}`, TTL, async () => {
+    try {
+      const json = (await fetchJsonCached<GeoTokenInfoResponse>(
+        `${GECKOTERMINAL_BASE}/networks/${NETWORK}/tokens/${addr}`,
+        { cacheKey: `geo:tokeninfo:raw:${addr}` }
+      )) as GeoTokenInfoResponse;
+
+      const attrs = json.data?.attributes;
+      if (!attrs) return null;
+
+      const socials = (attrs.socials || [])
+        .map((s) => ({
+          type: s.type || "link",
+          url: s.url || (s.handle ? `https://x.com/${s.handle}` : ""),
+        }))
+        .filter((s) => s.url);
+
+      const websites = attrs.websites || [];
+
+      return {
+        socials,
+        websites,
+        imageUrl: attrs.image_url || null,
+        coingeckoId: attrs.coingecko_coin_id || null,
+      };
+    } catch {
+      return null;
+    }
+  });
 }
 
 interface MapOpts {
@@ -248,7 +312,34 @@ export async function enrichTokensWithGecko(
               (num(y.attributes?.reserve_in_usd) || 0) -
               (num(x.attributes?.reserve_in_usd) || 0)
           )[0];
-          return mapGeoPool(best, { sources: ["geckoterminal"], tokenMeta: meta });
+
+          // Also fetch token info for socials/websites
+          let socials: { type: string; url: string }[] = [];
+          let websites: { url: string; label?: string }[] = [];
+          let infoImageUrl: string | null = null;
+          let infoCoingeckoId: string | null = null;
+          try {
+            const info = await fetchTokenInfo(addr);
+            if (info) {
+              socials = info.socials;
+              websites = info.websites;
+              infoImageUrl = info.imageUrl;
+              infoCoingeckoId = info.coingeckoId;
+            }
+          } catch {
+            /* ignore token info failures — pools data is still usable */
+          }
+
+          const pair = mapGeoPool(best, { sources: ["geckoterminal"], tokenMeta: meta });
+          if (!pair) return null;
+
+          // Merge token info socials/websites into the pair
+          return {
+            ...pair,
+            socials: socials.length ? socials : pair.socials,
+            websites: websites.length ? websites : pair.websites,
+            imageUrl: pair.imageUrl || infoImageUrl,
+          };
         })
       )
     );
@@ -383,6 +474,44 @@ export async function fetchTokenDetail(address: string): Promise<TokenDetail> {
     errors.push({ source: "geckoterminal-ohlcv", message: String(e) });
   }
 
+  // Also try to get data from DexScreener for social links
+  let dexscreenerToken: TrackedPair | null = null;
+  try {
+    const { fetchDexTokenPairs } = await import('./dexscreener');
+    const dexPairs = await fetchDexTokenPairs(addr);
+    if (dexPairs.length > 0) {
+      dexscreenerToken = dexPairs[0];
+    }
+  } catch (e) {
+    errors.push({ source: "dexscreener-social", message: String(e) });
+  }
+
+  // Also try to get token info from GeckoTerminal for socials/websites
+  let geoTokenInfo: { socials: { type: string; url: string }[]; websites: { url: string; label?: string }[] } | null = null;
+  try {
+    geoTokenInfo = await fetchTokenInfo(addr);
+  } catch (e) {
+    /* ignore — best effort */
+  }
+
+  // Combine socials from all sources (DexScreener + GeckoTerminal)
+  const allSocials = collectSocialLinks(
+    dexscreenerToken?.socials,
+    geoTokenInfo?.socials
+  );
+  
+  // Combine websites from all sources, filtering out DEX/explorer URLs
+  const allWebsites = [...(geoTokenInfo?.websites || []), ...(dexscreenerToken?.websites || []), ...(token?.websites || [])]
+    .filter(website => {
+      const url = website.url.toLowerCase();
+      return !url.includes("dexscreener") && 
+             !url.includes("birdeye") && 
+             !url.includes("geckoterminal") && 
+             !url.includes("coingecko") &&
+             !url.includes("coinmarketcap");
+    })
+    .slice(0, 3); // Limit to 3 websites
+
   return {
     updatedAt: new Date().toISOString(),
     chain: {
@@ -395,12 +524,13 @@ export async function fetchTokenDetail(address: string): Promise<TokenDetail> {
     token,
     pools,
     ohlcv,
-    socials: token?.socials || [],
-    websites: token?.websites || [],
+    socials: allSocials,
+    websites: allWebsites,
     sources: [
       "GeckoTerminal token info",
-      "GeckoTerminal pools",
+      "GeckoTerminal pools", 
       "GeckoTerminal OHLCV",
+      ...(dexscreenerToken ? ["DexScreener social"] : [])
     ],
     errors: errors.length ? errors : undefined,
     recommendedRefreshMs: SOURCE_TIMING.geckoterminal.refreshMs,
@@ -409,32 +539,143 @@ export async function fetchTokenDetail(address: string): Promise<TokenDetail> {
 
 /**
  * Fetch recent transactions for a token from GeckoTerminal.
- * Returns raw transaction data that needs to be normalized.
+ * Returns normalized transaction data ready for frontend.
  */
 export async function fetchTokenTransactions(
   address: string,
   page = 1
-): Promise<{ transactions: unknown[] }> {
+): Promise<{ transactions: any[] }> {
   const addr = address.toLowerCase();
-  try {
-    const url = `${GECKOTERMINAL_BASE}/networks/${NETWORK}/tokens/${addr}/transactions?page=${page}`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+  
+  return cached(`geo:transactions:${addr}:${page}`, 5000, async () => {
+    try {
+      const url = `${GECKOTERMINAL_BASE}/networks/${NETWORK}/tokens/${addr}/transactions?page=${page}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error(`GeckoTerminal API error: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`GeckoTerminal API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const rawTransactions = data.data?.attributes?.transactions || data.transactions || [];
+      
+      const normalizedTransactions = rawTransactions.map((tx: any) => {
+        try {
+          const hash = tx.hash || tx.tx_hash || tx.transaction_hash || "";
+          if (!hash) return null;
+          
+          const type = (tx.type || tx.transaction_type || "buy").toLowerCase() === 'sell' ? 'sell' : 'buy';
+          const trader = tx.trader || tx.from || tx.sender || tx.wallet_address || "";
+          const tokenAmount = parseFloat(tx.amount || tx.token_amount || tx.quantity || "0");
+          const usdValue = parseFloat(tx.value_usd || tx.usd_value || tx.price_usd || tx.valueUSD || "0");
+          const timestamp = tx.timestamp
+            ? typeof tx.timestamp === "string"
+              ? new Date(tx.timestamp).getTime()
+              : tx.timestamp * 1000
+            : Date.now();
+          const dexName = tx.dex || tx.dexName || tx.dex_name || "Unknown DEX";
+          const gasUsed = tx.gas_used || tx.gasUsed;
+          const gasFee = tx.gas_fee || tx.gasFee;
+          const blockNumber = tx.block_number || tx.blockNumber;
+          
+          return {
+            hash,
+            type,
+            trader,
+            tokenAmount,
+            tokenSymbol: '',
+            usdValue,
+            timestamp,
+            gasUsed,
+            gasFee,
+            dexName,
+            blockNumber,
+            isWhale: usdValue >= 10000,
+            isMegaWhale: usdValue >= 50000,
+          };
+        } catch (error) {
+          console.error('Failed to normalize transaction:', error);
+          return null;
+        }
+      }).filter((tx: any) => tx !== null);
+      
+      return {
+        transactions: normalizedTransactions,
+      };
+    } catch (error) {
+      console.error('Failed to fetch token transactions:', error);
+      return { transactions: [] };
     }
+  });
+}
 
-    const data = await response.json();
-    return {
-      transactions: data.data?.attributes?.transactions || [],
-    };
-  } catch (error) {
-    console.error('Failed to fetch token transactions:', error);
-    return { transactions: [] };
-  }
+
+
+/**
+ * Alternative: Fetch transactions from DexScreener API
+ */
+export async function fetchDexScreenerTransactions(
+  address: string
+): Promise<{ transactions: any[] }> {
+  const addr = address.toLowerCase();
+  
+  return cached(`dex:transactions:${addr}`, 3000, async () => {
+    try {
+      const url = `https://api.dexscreener.com/latest/dex/tokens/${addr}/transactions`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`DexScreener API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const rawTransactions = data.transactions || [];
+      
+      const normalizedTransactions = rawTransactions.map((tx: any) => {
+        try {
+          const hash = tx.hash || "";
+          const type = tx.type?.toLowerCase() === 'sell' ? 'sell' : 'buy';
+          const trader = tx.trader || tx.from || "";
+          const tokenAmount = parseFloat(tx.amount || "0");
+          const tokenSymbol = tx.tokenSymbol || "";
+          const usdValue = parseFloat(tx.valueUSD || "0");
+          const timestamp = tx.timestamp ? new Date(tx.timestamp).getTime() : Date.now();
+          const dexName = tx.dex || "Unknown DEX";
+          
+          return {
+            hash,
+            type,
+            trader,
+            tokenAmount,
+            tokenSymbol,
+            usdValue,
+            timestamp,
+            dexName,
+            isWhale: usdValue >= 10000,
+            isMegaWhale: usdValue >= 50000,
+          };
+        } catch (error) {
+          console.error('Failed to normalize DexScreener transaction:', error);
+          return null;
+        }
+      }).filter((tx: any) => tx !== null);
+      
+      return {
+        transactions: normalizedTransactions,
+      };
+    } catch (error) {
+      console.error('Failed to fetch DexScreener transactions:', error);
+      return { transactions: [] };
+    }
+  });
 }

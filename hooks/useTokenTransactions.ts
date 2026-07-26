@@ -169,7 +169,7 @@ function normalizeTransaction(
     const hash = raw.hash || raw.tx_hash || raw.transaction_hash || "";
     if (!hash) return null;
 
-    const type = raw.type?.toLowerCase() === "sell" ? "sell" : "buy";
+    const type = (raw.type || raw.transaction_type || "buy").toLowerCase() === "sell" ? "sell" : "buy";
     const trader =
       raw.trader || raw.from || raw.sender || raw.wallet_address || "";
     const tokenAmount = parseFloat(
@@ -178,7 +178,7 @@ function normalizeTransaction(
     const tokenSymbol =
       raw.token_symbol || raw.symbol || raw.tokenSymbol || "TOKEN";
     const usdValue = parseFloat(
-      raw.value_usd || raw.usd_value || raw.price_usd || "0"
+      raw.value_usd || raw.usd_value || raw.price_usd || raw.valueUSD || "0"
     );
     const timestamp = raw.timestamp
       ? typeof raw.timestamp === "string"

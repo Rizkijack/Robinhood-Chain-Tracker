@@ -590,3 +590,34 @@ table.pairs td {
 .social-none {
   font-size: 11px;
 }
+
+/* ── Live Transaction Pulse ────────────────────── */
+.tx-pulse {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: #22c55e;
+  color: #22c55e;
+  font-size: 6px;
+  line-height: 6px;
+  text-align: center;
+  animation: pulse 2s infinite;
+  vertical-align: middle;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+}

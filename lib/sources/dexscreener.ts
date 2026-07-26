@@ -63,11 +63,42 @@ function mapDexPair(p: DexPairRaw, sources: TrackedPair["sources"]): TrackedPair
 
   const socials =
     p.info?.socials
-      ?.map((s) => ({
-        type: s.type || s.platform || "link",
-        url: s.url || (s.handle ? `https://x.com/${s.handle}` : ""),
-      }))
-      .filter((s) => s.url) || [];
+      ?.map((s) => {
+        const type = s.type || s.platform || "";
+        const url = s.url || "";
+        let finalUrl = url;
+        let finalType = type.toLowerCase();
+        
+        // Normalize URLs based on type
+        if (!url && s.handle) {
+          if (type?.toLowerCase().includes('twitter') || type?.toLowerCase().includes('x')) {
+            finalUrl = `https://x.com/${s.handle}`;
+          } else if (type?.toLowerCase().includes('telegram') || type?.toLowerCase().includes('t.me')) {
+            finalUrl = `https://t.me/${s.handle}`;
+          } else if (type?.toLowerCase().includes('discord')) {
+            finalUrl = `https://discord.gg/${s.handle}`;
+          } else {
+            finalUrl = url;
+          }
+        }
+        
+        // Normalize type names
+        if (finalType.includes('twitter') || finalType.includes('x.com')) {
+          finalType = 'twitter';
+        } else if (finalType.includes('telegram') || finalType.includes('t.me')) {
+          finalType = 'telegram';
+        } else if (finalType.includes('discord')) {
+          finalType = 'discord';
+        } else if (finalType.includes('web') || finalType.includes('site') || finalType.includes('homepage')) {
+          finalType = 'website';
+        }
+        
+        return {
+          type: finalType,
+          url: finalUrl,
+        };
+      })
+      .filter((s) => s.url && ['twitter', 'telegram', 'discord', 'website'].includes(s.type)) || [];
 
   return {
     id: `dex:${pairAddress || tokenAddress}`,

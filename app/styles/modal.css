@@ -281,6 +281,28 @@
   color: var(--text);
 }
 
+/* ---- transaction stream ---- */
+.tx-source {
+  font-size: 10px;
+  color: var(--text-mute);
+  margin-left: 8px;
+  font-weight: normal;
+}
+.tx-explorer-link-row {
+  display: flex;
+  gap: 12px;
+  margin: 6px 0 10px;
+}
+.tx-explorer-link {
+  font-size: 11px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+.tx-explorer-link:hover {
+  text-decoration: underline;
+}
+
 /* ---- swap ---- */
 .dswap {
   margin-top: 4px;

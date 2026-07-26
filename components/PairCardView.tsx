@@ -26,6 +26,7 @@ import {
 import { SourceBadges } from "./SourceBadges";
 import { WatchlistStar, useWatchlist } from "./Watchlist";
 import { SocialLinks } from "./SocialLinks";
+import { CHAIN } from "@/lib/constants";
 
 const ROWS_OPTIONS = [25, 50, 100] as const;
 
@@ -396,6 +397,14 @@ export function PairCardView({
                   >
                     {p.txns1h != null ? p.txns1h : "—"}
                   </span>
+                  {p.txns1h != null && p.txns1h > 0 && (
+                    <span
+                      className="tx-pulse"
+                      title="Live transaction data — click card for stream"
+                    >
+                      ●
+                    </span>
+                  )}
                 </div>
                 <div className="pc-stat">
                   <span className="pc-stat-label">MCap</span>
@@ -403,44 +412,49 @@ export function PairCardView({
                 </div>
               </div>
 
-              {/* ─── Footer: sources + quick links ─── */}
-              <div
-                className="pc-foot"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <SourceBadges sources={p.sources} />
-                <SocialLinks pair={p} compact maxLinks={3} />
-                <div className="pc-links">
-                  <a href={p.links.dexscreener} target="_blank" rel="noreferrer" title="DexScreener">
-                    DexS
-                  </a>
-                  <a href={p.links.birdeye} target="_blank" rel="noreferrer" title="Birdeye">
-                    Bird
-                  </a>
-                  {p.links.geckoterminal ? (
-                    <a href={p.links.geckoterminal} target="_blank" rel="noreferrer" title="GeckoTerminal">
-                      Geo
-                    </a>
-                  ) : null}
-                  {p.links.coingecko ? (
-                    <a href={p.links.coingecko} target="_blank" rel="noreferrer" title="CoinGecko">
-                      CG
-                    </a>
-                  ) : null}
-                  {p.links.coinmarketcap ? (
-                    <a href={p.links.coinmarketcap} target="_blank" rel="noreferrer" title="CoinMarketCap">
-                      CMC
-                    </a>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => copyText(p.pairAddress || p.tokenAddress)}
-                    title="Copy pair/token address"
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
+               {/* ─── Footer: sources + social links + quick links ─── */}
+               <div
+                 className="pc-foot"
+                 onClick={(e) => e.stopPropagation()}
+               >
+                 <SourceBadges sources={p.sources} />
+                 <SocialLinks pair={p} compact maxLinks={4} />
+                 <div className="pc-links">
+                   <a
+                     href={`https://dexscreener.com/${CHAIN.id}/${p.pairAddress || p.tokenAddress}`}
+                     target="_blank"
+                     rel="noreferrer"
+                     title="DexScreener"
+                   >
+                     DexS
+                   </a>
+                   <a
+                     href={p.links.birdeye}
+                     target="_blank"
+                     rel="noreferrer"
+                     title="Birdeye"
+                   >
+                     Bird
+                   </a>
+                   {p.links.geckoterminal ? (
+                     <a
+                       href={p.links.geckoterminal}
+                       target="_blank"
+                       rel="noreferrer"
+                       title="GeckoTerminal"
+                     >
+                       Geo
+                     </a>
+                   ) : null}
+                   <button
+                     type="button"
+                     onClick={() => copyText(p.pairAddress || p.tokenAddress)}
+                     title="Copy pair/token address"
+                   >
+                     Copy
+                   </button>
+                 </div>
+               </div>
             </div>
           );
         })}

@@ -13,6 +13,7 @@ import {
 import { PriceChart } from "./PriceChart";
 import { DirectSwap } from "./DirectSwap";
 import { TransactionStream } from "./TransactionStream";
+import { SocialLinks } from "./SocialLinks";
 import { useTokenTransactions } from "@/hooks/useTokenTransactions";
 import { useWatchlist, WatchlistStar } from "./Watchlist";
 
@@ -469,43 +470,114 @@ export function TokenDetailModal({
           <section className="dlinks">
             <div className="dsection-title">Links</div>
             <div className="row-actions">
-              <a href={pair.links.dexscreener} target="_blank" rel="noreferrer">DexS</a>
-              <a href={pair.links.birdeye} target="_blank" rel="noreferrer">Birdeye</a>
+              <a
+                href={`https://dexscreener.com/${CHAIN.id}/${pair.pairAddress || pair.tokenAddress}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                DexS
+              </a>
+              <a href={pair.links.birdeye} target="_blank" rel="noreferrer">
+                Birdeye
+              </a>
               {pair.links.geckoterminal ? (
-                <a href={pair.links.geckoterminal} target="_blank" rel="noreferrer">Geo</a>
+                <a href={pair.links.geckoterminal} target="_blank" rel="noreferrer">
+                  Geo
+                </a>
               ) : (
-                <a href={iframeUrl} target="_blank" rel="noreferrer">Geo</a>
+                <a href={iframeUrl} target="_blank" rel="noreferrer">
+                  Geo
+                </a>
               )}
               {pair.links.coingecko ? (
-                <a href={pair.links.coingecko} target="_blank" rel="noreferrer">CG</a>
+                <a href={pair.links.coingecko} target="_blank" rel="noreferrer">
+                  CG
+                </a>
               ) : null}
               {pair.links.coinmarketcap ? (
-                <a href={pair.links.coinmarketcap} target="_blank" rel="noreferrer">CMC</a>
+                <a href={pair.links.coinmarketcap} target="_blank" rel="noreferrer">
+                  CMC
+                </a>
               ) : null}
               <button type="button" onClick={() => copyText(address)} title="Copy address">
                 Copy
               </button>
             </div>
 
-            {(detail?.socials?.length || detail?.websites?.length) && (
+            {/* Social media links (x, telegram, discord, website) */}
+            {(pair.socials?.length || detail?.socials?.length || pair.websites?.length || detail?.websites?.length) ? (
               <div className="d-socials">
-                {(detail?.websites || []).map((w, i) => (
-                  <a key={`w${i}`} href={w.url} target="_blank" rel="noreferrer">
-                    {w.label || "Site"}
-                  </a>
-                ))}
-                {(detail?.socials || []).map((s, i) => (
-                  <a key={`s${i}`} href={s.url} target="_blank" rel="noreferrer">
-                    {s.type}
-                  </a>
-                ))}
+                <SocialLinks pair={pair} compact={false} />
+                {/* Also show detail-level socials/websites if pair doesn't have them */}
+                {(detail?.socials || []).map((s, i) => {
+                  const exists = (pair.socials || []).some(
+                    (ps) => ps.url === s.url
+                  );
+                  if (exists) return null;
+                  return (
+                    <a
+                      key={`ds${i}`}
+                      href={s.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`social-link social-${s.type}`}
+                      title={s.type}
+                    >
+                      {s.type}
+                    </a>
+                  );
+                })}
+                {(detail?.websites || []).map((w, i) => {
+                  const exists = (pair.websites || []).some(
+                    (pw) => pw.url === w.url
+                  );
+                  if (exists) return null;
+                  return (
+                    <a
+                      key={`dw${i}`}
+                      href={w.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="social-link social-website"
+                      title={w.label || "Website"}
+                    >
+                      {w.label || "Site"}
+                    </a>
+                  );
+                })}
               </div>
+            ) : (
+              <div className="d-socials muted mono">No social links available</div>
             )}
           </section>
         )}
 
         {activeTab === "transactions" && (
           <section className="dtransactions">
+            <div className="dsection-title">
+              Live Transaction Stream
+              <span className="tx-source">
+                Source: GeckoTerminal + DexScreener (real-time)
+              </span>
+            </div>
+            <div className="tx-explorer-link-row">
+              <a
+                href={`https://dexscreener.com/${CHAIN.id}/${pair.pairAddress || pair.tokenAddress}`}
+                target="_blank"
+                rel="noreferrer"
+                className="tx-explorer-link"
+              >
+                View on DexScreener ↗
+              </a>
+              <a
+                href={pair.links.geckoterminal || `https://www.geckoterminal.com/${CHAIN.id}/tokens/${address}`}
+                target="_blank"
+                rel="noreferrer"
+                className="tx-explorer-link"
+              >
+                View on GeckoTerminal ↗
+              </a>
+            </div>
             <TransactionStream
               transactions={transactions}
               isLoading={txLoading}

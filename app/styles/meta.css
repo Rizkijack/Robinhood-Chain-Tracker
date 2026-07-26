@@ -31,3 +31,211 @@
   font-size: 12px;
   font-style: italic;
 }
+
+
+
+/* ── Social Links ─────────────────────────── */
+.social-links {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.social-links.compact {
+  gap: 3px;
+}
+
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--bg-2);
+  color: var(--text-dim);
+  transition: all 0.15s ease;
+  font-size: 14px;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.social-links.compact .social-link {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.social-link:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+/* Specific social media colors */
+.social-link.social-twitter {
+  color: #1da1f2;
+}
+
+.social-link.social-telegram {
+  color: #26a5e4;
+}
+
+.social-link.social-discord {
+  color: #5865f2;
+}
+
+.social-link.social-website {
+  color: var(--accent);
+}
+
+.social-icon {
+  display: inline-block;
+}
+
+.social-none {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+  text-align: center;
+}
+
+.social-more {
+  font-size: 10px;
+  background: var(--bg-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-mute);
+}
+
+
+/* ── Transaction Count ────────────────────── */
+.transaction-count-container {
+  display: inline-block;
+}
+
+.transaction-count-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.transaction-count-button:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.transaction-count-button.loading {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.transaction-count-number {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.transaction-count-label {
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+
+/* ── Social Links Modal ───────────────────── */
+.social-category {
+  margin-bottom: var(--sp-5);
+}
+
+.social-category-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.social-category-icon {
+  font-size: 16px;
+  width: 24px;
+  text-align: center;
+}
+
+.social-links-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.social-link-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3);
+  background: var(--bg-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  transition: all 0.15s ease;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.social-link-item:hover {
+  background: var(--bg-3);
+  border-color: var(--line);
+  transform: translateY(-1px);
+}
+
+.social-link-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.social-link-url {
+  font-size: 11px;
+  color: var(--text-mute);
+  font-family: var(--mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* ── Transaction Cell ─────────────────────── */
+.transaction-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.tx-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 1.5s ease infinite;
+  margin-left: 4px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0);
+  }
+}

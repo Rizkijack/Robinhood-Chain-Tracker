@@ -69,12 +69,28 @@ export function SocialLinks({
   }
 
   // Also check websites for homepage
-  if (pair.websites?.length && !links.some((l) => l.type === "website")) {
-    const site = pair.websites.find(
-      (w) => !w.url.includes("dexscreener") && !w.url.includes("birdeye")
+  if (pair.websites?.length) {
+    const filteredWebsites = pair.websites.filter(
+      (w) => {
+        const url = w.url.toLowerCase();
+        return !url.includes("dexscreener") && 
+               !url.includes("birdeye") && 
+               !url.includes("geckoterminal") && 
+               !url.includes("coingecko") &&
+               !url.includes("coinmarketcap") &&
+               !url.includes("github") &&
+               !url.includes("medium");
+      }
     );
-    if (site) {
-      links.push({ type: "website", url: site.url });
+    
+    if (filteredWebsites.length > 0) {
+      // Add up to 2 websites as homepage
+      const websitesToAdd = filteredWebsites.slice(0, 2);
+      websitesToAdd.forEach(website => {
+        if (!links.some(l => l.type === "website" && l.url === website.url)) {
+          links.push({ type: "website", url: website.url });
+        }
+      });
     }
   }
 
@@ -96,20 +112,26 @@ export function SocialLinks({
     <div
       className={`social-links ${compact ? "compact" : ""}`}
       onClick={(e) => e.stopPropagation()}
+      title={displayLinks.map(link => `${getSocialTitle(link.type)}: ${link.url}`).join('\n')}
     >
       {displayLinks.map((link, i) => (
         <a
           key={`${link.type}-${i}`}
           href={link.url}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className={`social-link social-${link.type}`}
-          title={getSocialTitle(link.type)}
+          title={`${getSocialTitle(link.type)}: ${link.url}`}
           aria-label={getSocialTitle(link.type)}
         >
           <span className="social-icon">{getSocialIcon(link.type)}</span>
         </a>
       ))}
+      {maxLinks != null && unique.length > maxLinks && (
+        <span className="social-more muted" title={`+${unique.length - maxLinks} more links`}>
+          +{unique.length - maxLinks}
+        </span>
+      )}
     </div>
   );
 }

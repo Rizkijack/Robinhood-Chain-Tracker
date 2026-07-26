@@ -13,6 +13,8 @@ import { SourceBadges } from "./SourceBadges";
 import { PairCardView } from "./PairCardView";
 import { WatchlistStar, useWatchlist } from "./Watchlist";
 import { SocialLinks } from "./SocialLinks";
+import { TransactionCount } from "./TransactionCount";
+import { CHAIN } from "@/lib/constants";
 
 const ROWS_OPTIONS = [25, 50, 100] as const;
 
@@ -252,9 +254,8 @@ export function PairTable({
               <th className="num">Txns</th>
                <th className="num">MCap</th>
                <th>Src</th>
-               <th>Social</th>
                <th>Links</th>
-            </tr>
+             </tr>
           </thead>
           <tbody>
             {pagePairs.map((p, i) => (
@@ -365,16 +366,21 @@ export function PairTable({
                   <span className="mono">{formatUsd(p.volume1h)}</span>
                 </td>
                 <td className="num">
-                  <span
-                    className="mono"
-                    title={
-                      p.buys1h != null || p.sells1h != null
-                        ? `${p.buys1h ?? 0} buys ↑ / ${p.sells1h ?? 0} sells ↓`
-                        : undefined
-                    }
-                  >
-                    {p.txns1h != null ? p.txns1h : "—"}
-                  </span>
+                  <div className="transaction-cell">
+                    <TransactionCount 
+                      pairAddress={p.pairAddress}
+                      tokenAddress={p.tokenAddress}
+                      initialCount={p.txns1h || 0}
+                    />
+                    {p.txns1h != null && p.txns1h > 0 && (
+                      <span
+                        className="tx-pulse"
+                        title="Live transaction data — click row for stream"
+                      >
+                        ●
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="num">
                   <span className="mono">
@@ -385,32 +391,35 @@ export function PairTable({
                   <SourceBadges sources={p.sources} />
                 </td>
                 <td>
-                  <SocialLinks pair={p} compact maxLinks={3} />
-                </td>
-                <td>
                   <div
                     className="row-actions links-compact"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <a href={p.links.dexscreener} target="_blank" rel="noreferrer" title="DexScreener">
+                    <SocialLinks pair={p} compact maxLinks={4} />
+                    <a
+                      href={`https://dexscreener.com/${CHAIN.id}/${p.pairAddress || p.tokenAddress}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="DexScreener"
+                    >
                       DexS
                     </a>
-                    <a href={p.links.birdeye} target="_blank" rel="noreferrer" title="Birdeye">
+                    <a
+                      href={p.links.birdeye}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Birdeye"
+                    >
                       Bird
                     </a>
                     {p.links.geckoterminal ? (
-                      <a href={p.links.geckoterminal} target="_blank" rel="noreferrer" title="GeckoTerminal">
+                      <a
+                        href={p.links.geckoterminal}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="GeckoTerminal"
+                      >
                         Geo
-                      </a>
-                    ) : null}
-                    {p.links.coingecko ? (
-                      <a href={p.links.coingecko} target="_blank" rel="noreferrer" title="CoinGecko">
-                        CG
-                      </a>
-                    ) : null}
-                    {p.links.coinmarketcap ? (
-                      <a href={p.links.coinmarketcap} target="_blank" rel="noreferrer" title="CoinMarketCap">
-                        CMC
                       </a>
                     ) : null}
                     <button

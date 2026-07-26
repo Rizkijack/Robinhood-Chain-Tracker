@@ -141,3 +141,48 @@ export function emptyTrackedPair(
     links: buildExternalLinks(pair, token, source),
   };
 }
+
+
+
+/**
+ * Collect social media links from multiple sources
+ */
+export function collectSocialLinks(
+  dexSocials?: { type: string; url: string }[],
+  geoSocials?: { type: string; url: string }[]
+): { type: string; url: string }[] {
+  const allSocials = [...(dexSocials || []), ...(geoSocials || [])];
+  const uniqueLinks = new Map<string, { type: string; url: string }>();
+  
+  for (const social of allSocials) {
+    const type = social.type.toLowerCase();
+    const url = social.url.toLowerCase();
+    
+    // Normalize type names
+    let normalizedType = type;
+    if (type.includes('twitter') || type.includes('x.com') || type === 'x') {
+      normalizedType = 'twitter';
+    } else if (type.includes('telegram') || type.includes('t.me')) {
+      normalizedType = 'telegram';
+    } else if (type.includes('discord')) {
+      normalizedType = 'discord';
+    } else if (type.includes('web') || type.includes('site') || type.includes('homepage')) {
+      normalizedType = 'website';
+    }
+    
+    // Only keep the four main social media types
+    if (!['twitter', 'telegram', 'discord', 'website'].includes(normalizedType)) {
+      continue;
+    }
+    
+    // Use the first occurrence of each URL
+    if (!uniqueLinks.has(url)) {
+      uniqueLinks.set(url, {
+        type: normalizedType,
+        url: social.url // Keep original URL with correct case
+      });
+    }
+  }
+  
+  return Array.from(uniqueLinks.values());
+}
