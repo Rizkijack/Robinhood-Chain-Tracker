@@ -22,7 +22,9 @@ interface UseTokenTransactionsReturn {
 
 export function useTokenTransactions(
   tokenAddress: string | null,
-  pairAddress?: string | null
+  pairAddress?: string | null,
+  tokenPriceUsd?: number | null,
+  tokenSymbol?: string | null
 ): UseTokenTransactionsReturn {
   const [transactions, setTransactions] = useState<TokenTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,6 +68,8 @@ export function useTokenTransactions(
     try {
       const params = new URLSearchParams();
       if (pairAddress) params.set("pairAddress", pairAddress);
+      if (tokenPriceUsd != null) params.set("priceUsd", String(tokenPriceUsd));
+      if (tokenSymbol) params.set("symbol", tokenSymbol);
       const qs = params.toString();
       const response = await fetch(
         `/api/token/${tokenAddress}/transactions${qs ? `?${qs}` : ""}`
@@ -109,7 +113,7 @@ export function useTokenTransactions(
     } finally {
       setIsLoading(false);
     }
-  }, [tokenAddress, pairAddress]);
+  }, [tokenAddress, pairAddress, tokenPriceUsd, tokenSymbol]);
 
   const refetch = useCallback(() => {
     fetchTransactions();

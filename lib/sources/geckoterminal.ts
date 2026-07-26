@@ -638,6 +638,104 @@ export async function fetchTokenTransactions(
 
 
 /**
+ * Fetch individual token transfer transactions from Blockscout explorer API.
+ * This is the only reliable source for granular swap-level transaction data
+ * on Robinhood Chain. Returns normalized transactions ready for the frontend.
+ *
+ * @param tokenAddress  The token contract address
+ * @param pairAddress   Optional pool/pair address — used to classify buy vs sell
+ * @param tokenPriceUsd Optional token price in USD for value calculation
+ * @param tokenSymbol   Optional token symbol
+ */
+export async function fetchBlockscoutTransactions(
+  tokenAddress: string,
+  pairAddress?: string,
+  tokenPriceUsd?: number | null,
+  tokenSymbol?: string
+): Promise<{ transactions: any[] }> {
+  const addr = tokenAddress.toLowerCase();
+
+  return cached(`blockscout:txns:${addr}:${pairAddress || "auto"}`, 5000, async () => {
+    try {
+      const url =
+        `https://robinhoodchain.blockscout.com/api` +
+        `?module=account&action=tokentx` +
+        `&contractaddress=${addr}` +
+        `&page=1&offset=50&sort=desc`;
+
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) throw new Error(`Blockscout API error: ${response.status}`);
+
+      const data = await response.json();
+      if (data.status !== "1" || !Array.isArray(data.result)) {
+        return { transactions: [] };
+      }
+
+      const poolAddr = pairAddress?.toLowerCase();
+      const decimals = parseInt(data.result[0]?.tokenDecimal || "18", 10);
+      const sym = tokenSymbol || data.result[0]?.tokenSymbol || "TOKEN";
+
+      const transactions = data.result
+        .map((tx: any) => {
+          const hash = tx.hash || "";
+          if (!hash) return null;
+
+          const rawAmount = parseFloat(tx.value || "0");
+          const tokenAmount = rawAmount / Math.pow(10, decimals);
+
+          // Classify buy vs sell based on transfer direction relative to pool
+          let type: "buy" | "sell" = "buy";
+          if (poolAddr) {
+            const fromPool = tx.from?.toLowerCase() === poolAddr;
+            const toPool = tx.to?.toLowerCase() === poolAddr;
+            // Tokens leaving pool = user selling; tokens entering pool = user buying
+            type = fromPool ? "sell" : toPool ? "buy" : "buy";
+          }
+
+          const trader = type === "buy" ? (tx.from || "") : (tx.to || "");
+
+          // Calculate USD value from token amount × price
+          const usdValue = tokenPriceUsd != null ? tokenAmount * tokenPriceUsd : 0;
+
+          const timestamp = tx.timeStamp
+            ? parseInt(tx.timeStamp, 10) * 1000
+            : Date.now();
+
+          const gasUsed = tx.gasUsed ? parseInt(tx.gasUsed, 10) : undefined;
+          const gasPrice = tx.gasPrice ? parseInt(tx.gasPrice, 10) : undefined;
+          // Gas fee in ETH = gasUsed * gasPrice / 1e18
+          const gasFee =
+            gasUsed && gasPrice ? (gasUsed * gasPrice) / 1e18 : undefined;
+
+          return {
+            hash,
+            type,
+            trader,
+            tokenAmount,
+            tokenSymbol: sym,
+            usdValue,
+            timestamp,
+            gasUsed,
+            gasFee,
+            dexName: "Uniswap",
+            blockNumber: tx.blockNumber,
+            isWhale: usdValue >= 10000,
+            isMegaWhale: usdValue >= 50000,
+          };
+        })
+        .filter(Boolean);
+
+      return { transactions };
+    } catch (error) {
+      console.error("Failed to fetch Blockscout transactions:", error);
+      return { transactions: [] };
+    }
+  });
+}
+
+/**
  * Fetch transactions from DexScreener via their pair endpoint.
  * DexScreener's public API doesn't expose individual swap transactions
  * directly, but the pair endpoint returns recent txns metadata.

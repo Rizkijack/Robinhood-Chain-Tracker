@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { fetchTokenTransactions, fetchDexScreenerTransactions } from "@/lib/sources/geckoterminal";
+import {
+  fetchBlockscoutTransactions,
+  fetchTokenTransactions,
+  fetchDexScreenerTransactions,
+} from "@/lib/sources/geckoterminal";
 import { addressParam } from "@/lib/validation/schemas";
 import { validateRequest } from "@/lib/validation/helpers";
 import { strictLimiter } from "@/lib/rate-limit";
@@ -19,39 +23,58 @@ export const GET = withRateLimit(strictLimiter, async (
   });
   if (!parsed.success) return parsed.response;
 
-  // Optional pairAddress query param — used to fetch pool-level transactions
   const pairAddress = req.nextUrl.searchParams.get("pairAddress") || undefined;
+  const tokenPriceUsd = req.nextUrl.searchParams.get("priceUsd")
+    ? parseFloat(req.nextUrl.searchParams.get("priceUsd")!)
+    : undefined;
+  const tokenSymbol = req.nextUrl.searchParams.get("symbol") || undefined;
 
   try {
-    const [geoData, dexData] = await Promise.allSettled([
-      fetchTokenTransactions(parsed.data.address, pairAddress),
-      fetchDexScreenerTransactions(parsed.data.address, pairAddress),
-    ]);
+    // Primary source: Blockscout explorer (has real individual tx data)
+    const blockscoutData = await fetchBlockscoutTransactions(
+      parsed.data.address,
+      pairAddress,
+      tokenPriceUsd,
+      tokenSymbol
+    );
 
-    // Merge transactions from both sources
-    const geoTxns = geoData.status === "fulfilled" ? geoData.value.transactions : [];
-    const dexTxns = dexData.status === "fulfilled" ? dexData.value.transactions : [];
+    let transactions = blockscoutData.transactions;
+    const sources: string[] = [];
+    if (transactions.length > 0) sources.push("blockscout");
 
-    // Combine both sources, deduplicate by hash
-    const seen = new Set<string>();
-    const merged: any[] = [];
-    for (const tx of [...geoTxns, ...dexTxns]) {
-      if (tx.hash && !seen.has(tx.hash)) {
-        seen.add(tx.hash);
-        merged.push(tx);
+    // If Blockscout returned nothing, try GeckoTerminal + DexScreener as fallback
+    if (transactions.length === 0) {
+      const [geoData, dexData] = await Promise.allSettled([
+        fetchTokenTransactions(parsed.data.address, pairAddress),
+        fetchDexScreenerTransactions(parsed.data.address, pairAddress),
+      ]);
+
+      const geoTxns = geoData.status === "fulfilled" ? geoData.value.transactions : [];
+      const dexTxns = dexData.status === "fulfilled" ? dexData.value.transactions : [];
+
+      const seen = new Set<string>();
+      for (const tx of [...geoTxns, ...dexTxns]) {
+        if (tx.hash && !seen.has(tx.hash)) {
+          seen.add(tx.hash);
+          transactions.push(tx);
+        }
       }
+      if (geoTxns.length > 0) sources.push("geckoterminal");
+      if (dexTxns.length > 0) sources.push("dexscreener");
     }
 
+    // Deduplicate final list by hash
+    const seen = new Set<string>();
+    const unique = transactions.filter((tx: any) => {
+      if (!tx.hash || seen.has(tx.hash)) return false;
+      seen.add(tx.hash);
+      return true;
+    });
+
     // Sort by timestamp (newest first)
-    merged.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+    unique.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
 
-    // Limit to 50 transactions
-    const limitedTransactions = merged.slice(0, 50);
-
-    // Determine which sources contributed
-    const sources: string[] = [];
-    if (geoTxns.length > 0) sources.push("geckoterminal");
-    if (dexTxns.length > 0) sources.push("dexscreener");
+    const limitedTransactions = unique.slice(0, 50);
 
     return NextResponse.json(
       {
