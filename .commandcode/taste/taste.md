@@ -1,0 +1,2 @@
+- Prefers surgical, minimal, scoped edits rather than broad refactoring — when asked to change one thing, explicitly constrains against unrelated changes ("tidak ada perubahan lain"). Confidence: 0.7
+- Communicates in Indonesian (Bahasa Indonesia). All user messages are in Indonesian; assistant responses may be mixed but the user consistently writes in Indonesian. Confidence: 0.85
