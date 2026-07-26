@@ -23,7 +23,10 @@ export function TransactionCount({
     setIsLoading(true);
     try {
       const addressToUse = tokenAddress || pairAddress;
-      const response = await fetch(`/api/token/${addressToUse}/transactions`);
+      const params = new URLSearchParams();
+      if (pairAddress && addressToUse !== pairAddress) params.set("pairAddress", pairAddress);
+      const qs = params.toString();
+      const response = await fetch(`/api/token/${addressToUse}/transactions${qs ? `?${qs}` : ""}`);
       
       if (response.ok) {
         const data = await response.json();

@@ -538,23 +538,76 @@ export async function fetchTokenDetail(address: string): Promise<TokenDetail> {
 }
 
 /**
+ * Normalize a raw GeckoTerminal transaction into a flat object.
+ */
+function normalizeGeoTransaction(tx: any): any | null {
+  try {
+    const hash = tx.hash || tx.tx_hash || tx.transaction_hash || "";
+    if (!hash) return null;
+
+    const type = (tx.type || tx.transaction_type || "buy").toLowerCase() === "sell" ? "sell" : "buy";
+    const trader = tx.trader || tx.from || tx.sender || tx.wallet_address || "";
+    const tokenAmount = parseFloat(tx.amount || tx.token_amount || tx.quantity || "0");
+    const usdValue = parseFloat(tx.value_usd || tx.usd_value || tx.price_usd || tx.valueUSD || "0");
+    const timestamp = tx.timestamp
+      ? typeof tx.timestamp === "string"
+        ? new Date(tx.timestamp).getTime()
+        : tx.timestamp * 1000
+      : Date.now();
+    const dexName = tx.dex || tx.dexName || tx.dex_name || "Unknown DEX";
+    const gasUsed = tx.gas_used || tx.gasUsed;
+    const gasFee = tx.gas_fee || tx.gasFee;
+    const blockNumber = tx.block_number || tx.blockNumber;
+
+    return {
+      hash,
+      type,
+      trader,
+      tokenAmount,
+      tokenSymbol: "",
+      usdValue,
+      timestamp,
+      gasUsed,
+      gasFee,
+      dexName,
+      blockNumber,
+      isWhale: usdValue >= 10000,
+      isMegaWhale: usdValue >= 50000,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch recent transactions for a token from GeckoTerminal.
- * Returns normalized transaction data ready for frontend.
+ * Uses the pool-level endpoint `/pools/{pool_address}/transactions`.
+ * If poolAddress is provided, fetches directly; otherwise resolves the
+ * most-liquid pool first.
  */
 export async function fetchTokenTransactions(
   address: string,
+  poolAddress?: string,
   page = 1
 ): Promise<{ transactions: any[] }> {
   const addr = address.toLowerCase();
-  
-  return cached(`geo:transactions:${addr}:${page}`, 5000, async () => {
+
+  return cached(`geo:transactions:${addr}:${poolAddress || "auto"}:${page}`, 5000, async () => {
     try {
-      const url = `${GECKOTERMINAL_BASE}/networks/${NETWORK}/tokens/${addr}/transactions?page=${page}`;
-      
+      // Resolve pool address if not provided
+      let pool = poolAddress?.toLowerCase();
+      if (!pool) {
+        const pools = await fetchTokenPools(addr, 1);
+        pool = pools[0]?.poolAddress?.toLowerCase();
+      }
+      if (!pool) {
+        return { transactions: [] };
+      }
+
+      const url = `${GECKOTERMINAL_BASE}/networks/${NETWORK}/pools/${pool}/transactions?page=${page}`;
+
       const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers: { Accept: "application/json" },
       });
 
       if (!response.ok) {
@@ -562,53 +615,21 @@ export async function fetchTokenTransactions(
       }
 
       const data = await response.json();
-      const rawTransactions = data.data?.attributes?.transactions || data.transactions || [];
-      
-      const normalizedTransactions = rawTransactions.map((tx: any) => {
-        try {
-          const hash = tx.hash || tx.tx_hash || tx.transaction_hash || "";
-          if (!hash) return null;
-          
-          const type = (tx.type || tx.transaction_type || "buy").toLowerCase() === 'sell' ? 'sell' : 'buy';
-          const trader = tx.trader || tx.from || tx.sender || tx.wallet_address || "";
-          const tokenAmount = parseFloat(tx.amount || tx.token_amount || tx.quantity || "0");
-          const usdValue = parseFloat(tx.value_usd || tx.usd_value || tx.price_usd || tx.valueUSD || "0");
-          const timestamp = tx.timestamp
-            ? typeof tx.timestamp === "string"
-              ? new Date(tx.timestamp).getTime()
-              : tx.timestamp * 1000
-            : Date.now();
-          const dexName = tx.dex || tx.dexName || tx.dex_name || "Unknown DEX";
-          const gasUsed = tx.gas_used || tx.gasUsed;
-          const gasFee = tx.gas_fee || tx.gasFee;
-          const blockNumber = tx.block_number || tx.blockNumber;
-          
-          return {
-            hash,
-            type,
-            trader,
-            tokenAmount,
-            tokenSymbol: '',
-            usdValue,
-            timestamp,
-            gasUsed,
-            gasFee,
-            dexName,
-            blockNumber,
-            isWhale: usdValue >= 10000,
-            isMegaWhale: usdValue >= 50000,
-          };
-        } catch (error) {
-          console.error('Failed to normalize transaction:', error);
-          return null;
-        }
-      }).filter((tx: any) => tx !== null);
-      
-      return {
-        transactions: normalizedTransactions,
-      };
+      // GeckoTerminal v2 returns transactions in data.attributes.transactions
+      // or as a top-level array — handle both shapes
+      const rawTransactions: any[] =
+        data.data?.attributes?.transactions ||
+        data.data?.transactions ||
+        data.transactions ||
+        [];
+
+      const normalized = rawTransactions
+        .map((tx: any) => normalizeGeoTransaction(tx))
+        .filter(Boolean);
+
+      return { transactions: normalized };
     } catch (error) {
-      console.error('Failed to fetch token transactions:', error);
+      console.error("Failed to fetch GeckoTerminal transactions:", error);
       return { transactions: [] };
     }
   });
@@ -617,64 +638,86 @@ export async function fetchTokenTransactions(
 
 
 /**
- * Alternative: Fetch transactions from DexScreener API
+ * Fetch transactions from DexScreener via their pair endpoint.
+ * DexScreener's public API doesn't expose individual swap transactions
+ * directly, but the pair endpoint returns recent txns metadata.
+ * We attempt the pair endpoint first; if a poolAddress is available we
+ * query that, otherwise we resolve pairs for the token.
  */
 export async function fetchDexScreenerTransactions(
-  address: string
+  address: string,
+  pairAddress?: string
 ): Promise<{ transactions: any[] }> {
   const addr = address.toLowerCase();
-  
-  return cached(`dex:transactions:${addr}`, 3000, async () => {
-    try {
-      const url = `https://api.dexscreener.com/latest/dex/tokens/${addr}/transactions`;
-      
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
 
-      if (!response.ok) {
-        throw new Error(`DexScreener API error: ${response.status}`);
+  return cached(`dex:transactions:${addr}:${pairAddress || "auto"}`, 3000, async () => {
+    try {
+      let pairs: any[] = [];
+
+      if (pairAddress) {
+        // Direct pair lookup
+        const url = `https://api.dexscreener.com/latest/dex/pairs/robinhood/${pairAddress.toLowerCase()}`;
+        const response = await fetch(url, {
+          headers: { Accept: "application/json" },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          pairs = data.pairs || [];
+        }
+      } else {
+        // Token lookup — gets all pairs for the token
+        const url = `https://api.dexscreener.com/latest/dex/tokens/${addr}`;
+        const response = await fetch(url, {
+          headers: { Accept: "application/json" },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          pairs = data.pairs || [];
+        }
       }
 
-      const data = await response.json();
-      const rawTransactions = data.transactions || [];
-      
-      const normalizedTransactions = rawTransactions.map((tx: any) => {
-        try {
-          const hash = tx.hash || "";
-          const type = tx.type?.toLowerCase() === 'sell' ? 'sell' : 'buy';
-          const trader = tx.trader || tx.from || "";
-          const tokenAmount = parseFloat(tx.amount || "0");
-          const tokenSymbol = tx.tokenSymbol || "";
-          const usdValue = parseFloat(tx.valueUSD || "0");
-          const timestamp = tx.timestamp ? new Date(tx.timestamp).getTime() : Date.now();
-          const dexName = tx.dex || "Unknown DEX";
-          
-          return {
-            hash,
-            type,
-            trader,
-            tokenAmount,
-            tokenSymbol,
-            usdValue,
-            timestamp,
-            dexName,
-            isWhale: usdValue >= 10000,
-            isMegaWhale: usdValue >= 50000,
-          };
-        } catch (error) {
-          console.error('Failed to normalize DexScreener transaction:', error);
-          return null;
+      if (!pairs.length) return { transactions: [] };
+
+      // DexScreener pair data includes txns counts (m5/h1/h24) and
+      // txns array with individual swaps when available.
+      const transactions: any[] = [];
+
+      for (const pair of pairs) {
+        const txns = pair.txns;
+        if (!txns) continue;
+
+        // DexScreener may include a `swaps` array on the pair object
+        if (Array.isArray(pair.swaps)) {
+          for (const swap of pair.swaps) {
+            const hash = swap.hash || "";
+            if (!hash) continue;
+            transactions.push({
+              hash,
+              type: (swap.type || "buy").toLowerCase() === "sell" ? "sell" : "buy",
+              trader: swap.from || swap.to || "",
+              tokenAmount: parseFloat(swap.amount || "0"),
+              tokenSymbol: pair.baseToken?.symbol || "",
+              usdValue: parseFloat(swap.valueUSD || swap.usd || "0"),
+              timestamp: swap.timestamp ? new Date(swap.timestamp).getTime() : Date.now(),
+              dexName: pair.dexId || "Unknown",
+              isWhale: parseFloat(swap.valueUSD || swap.usd || "0") >= 10000,
+              isMegaWhale: parseFloat(swap.valueUSD || swap.usd || "0") >= 50000,
+            });
+          }
         }
-      }).filter((tx: any) => tx !== null);
-      
-      return {
-        transactions: normalizedTransactions,
-      };
+      }
+
+      // Deduplicate by hash
+      const seen = new Set<string>();
+      const unique = transactions.filter((tx) => {
+        if (seen.has(tx.hash)) return false;
+        seen.add(tx.hash);
+        return true;
+      });
+
+      return { transactions: unique };
     } catch (error) {
-      console.error('Failed to fetch DexScreener transactions:', error);
+      console.error("Failed to fetch DexScreener transactions:", error);
       return { transactions: [] };
     }
   });

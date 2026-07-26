@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const GET = withRateLimit(strictLimiter, async (
-  _req: NextRequest,
+  req: NextRequest,
   context?: { params: Record<string, string> }
 ) => {
   const address = context?.params?.address ?? "";
@@ -19,42 +19,50 @@ export const GET = withRateLimit(strictLimiter, async (
   });
   if (!parsed.success) return parsed.response;
 
+  // Optional pairAddress query param — used to fetch pool-level transactions
+  const pairAddress = req.nextUrl.searchParams.get("pairAddress") || undefined;
+
   try {
-    // Try both sources and merge results
     const [geoData, dexData] = await Promise.allSettled([
-      fetchTokenTransactions(parsed.data.address),
-      fetchDexScreenerTransactions(parsed.data.address)
+      fetchTokenTransactions(parsed.data.address, pairAddress),
+      fetchDexScreenerTransactions(parsed.data.address, pairAddress),
     ]);
-    
-    let transactions: any[] = [];
-    
-    // Use GeckoTerminal data if available
-    if (geoData.status === 'fulfilled' && geoData.value.transactions.length > 0) {
-      transactions = geoData.value.transactions;
-    } 
-    // Fall back to DexScreener if GeckoTerminal fails
-    else if (dexData.status === 'fulfilled' && dexData.value.transactions.length > 0) {
-      transactions = dexData.value.transactions;
+
+    // Merge transactions from both sources
+    const geoTxns = geoData.status === "fulfilled" ? geoData.value.transactions : [];
+    const dexTxns = dexData.status === "fulfilled" ? dexData.value.transactions : [];
+
+    // Combine both sources, deduplicate by hash
+    const seen = new Set<string>();
+    const merged: any[] = [];
+    for (const tx of [...geoTxns, ...dexTxns]) {
+      if (tx.hash && !seen.has(tx.hash)) {
+        seen.add(tx.hash);
+        merged.push(tx);
+      }
     }
-    
+
     // Sort by timestamp (newest first)
-    transactions.sort((a, b) => b.timestamp - a.timestamp);
-    
+    merged.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+
     // Limit to 50 transactions
-    const limitedTransactions = transactions.slice(0, 50);
-    
-    return NextResponse.json({
-      transactions: limitedTransactions,
-      source: geoData.status === 'fulfilled' ? 'geckoterminal' : 'dexscreener',
-      count: limitedTransactions.length,
-      updatedAt: new Date().toISOString()
-    }, {
-      headers: { "Cache-Control": "no-store, max-age=0" },
-    });
-  } catch (e) {
+    const limitedTransactions = merged.slice(0, 50);
+
+    // Determine which sources contributed
+    const sources: string[] = [];
+    if (geoTxns.length > 0) sources.push("geckoterminal");
+    if (dexTxns.length > 0) sources.push("dexscreener");
+
     return NextResponse.json(
-      { error: String(e) },
-      { status: 500 }
+      {
+        transactions: limitedTransactions,
+        source: sources.join("+") || "none",
+        count: limitedTransactions.length,
+        updatedAt: new Date().toISOString(),
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } }
     );
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 });

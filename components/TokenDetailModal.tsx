@@ -75,7 +75,7 @@ export function TokenDetailModal({
 
   const address = pair.tokenAddress || pair.pairAddress;
 
-  // Transaction stream hook
+  // Transaction stream hook — pass pairAddress for pool-level transactions
   const {
     transactions,
     isLoading: txLoading,
@@ -85,7 +85,7 @@ export function TokenDetailModal({
     togglePause,
     setFilter,
     refetch,
-  } = useTokenTransactions(address);
+  } = useTokenTransactions(address, pair.pairAddress);
   const dexUrl = `https://dexscreener.com/${CHAIN.id}/${pair.pairAddress || pair.tokenAddress}`;
   const { isWatched, toggle } = useWatchlist();
 

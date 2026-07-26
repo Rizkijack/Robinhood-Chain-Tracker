@@ -21,7 +21,8 @@ interface UseTokenTransactionsReturn {
 }
 
 export function useTokenTransactions(
-  tokenAddress: string | null
+  tokenAddress: string | null,
+  pairAddress?: string | null
 ): UseTokenTransactionsReturn {
   const [transactions, setTransactions] = useState<TokenTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,9 +64,11 @@ export function useTokenTransactions(
     setError(null);
 
     try {
-      // Try GeckoTerminal API first
+      const params = new URLSearchParams();
+      if (pairAddress) params.set("pairAddress", pairAddress);
+      const qs = params.toString();
       const response = await fetch(
-        `/api/token/${tokenAddress}/transactions`
+        `/api/token/${tokenAddress}/transactions${qs ? `?${qs}` : ""}`
       );
 
       if (!response.ok) {
@@ -106,7 +109,7 @@ export function useTokenTransactions(
     } finally {
       setIsLoading(false);
     }
-  }, [tokenAddress]);
+  }, [tokenAddress, pairAddress]);
 
   const refetch = useCallback(() => {
     fetchTransactions();
