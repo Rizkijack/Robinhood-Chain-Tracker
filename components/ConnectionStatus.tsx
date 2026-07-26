@@ -15,7 +15,7 @@
  */
 
 import { useBlockchainStream } from "@/hooks/useBlockchainStream";
-import type { ConnectionMethod, ConnectionStatus } from "@/lib/streaming/types";
+import type { ConnectionMethod } from "@/lib/streaming/types";
 
 interface StatusConfig {
   label: string;
@@ -26,7 +26,7 @@ interface StatusConfig {
 
 function getConfig(
   method: ConnectionMethod,
-  status: ConnectionStatus
+  status: string
 ): StatusConfig {
   if (status === "connecting") {
     return {
@@ -42,6 +42,14 @@ function getConfig(
       color: "var(--yellow, #eab308)",
       boxShadow: "0 0 0 3px rgba(234, 179, 8, 0.15)",
       title: "WebSocket dropped — retrying…",
+    };
+  }
+  if (status === "error") {
+    return {
+      label: "Disconnected",
+      color: "var(--red, #ef4444)",
+      boxShadow: "0 0 0 3px rgba(239, 68, 68, 0.15)",
+      title: "Connection error",
     };
   }
   if (method === "websocket") {

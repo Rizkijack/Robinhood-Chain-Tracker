@@ -286,129 +286,129 @@ export function TokenDetailModal({
                 : "—"
             }
           />
-	        </section>
+        </section>
 
-	        {/* Tab navigation */}
-	        <div className="d-tabs" role="tablist" aria-label="Token details">
-	          <button
-	            type="button"
-	            role="tab"
-	            aria-selected={activeTab === "chart"}
-	            className={activeTab === "chart" ? "active" : ""}
-	            onClick={() => setActiveTab("chart")}
-	          >
-	            Chart
-	          </button>
-	          <button
-	            type="button"
-	            role="tab"
-	            aria-selected={activeTab === "pools"}
-	            className={activeTab === "pools" ? "active" : ""}
-	            onClick={() => setActiveTab("pools")}
-	          >
-	            Pools
-	          </button>
-	          <button
-	            type="button"
-	            role="tab"
-	            aria-selected={activeTab === "swap"}
-	            className={activeTab === "swap" ? "active" : ""}
-	            onClick={() => setActiveTab("swap")}
-	          >
-	            Swap
-	          </button>
-	          <button
-	            type="button"
-	            role="tab"
-	            aria-selected={activeTab === "links"}
-	            className={activeTab === "links" ? "active" : ""}
-	            onClick={() => setActiveTab("links")}
-	          >
-	            Links
-	          </button>
-	          <button
-	            type="button"
-	            role="tab"
-	            aria-selected={activeTab === "transactions"}
-	            className={activeTab === "transactions" ? "active" : ""}
-	            onClick={() => setActiveTab("transactions")}
-	          >
-	            Transactions
-	          </button>
-	        </div>
+        {/* Tab navigation */}
+        <div className="d-tabs" role="tablist" aria-label="Token details">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "chart"}
+            className={activeTab === "chart" ? "active" : ""}
+            onClick={() => setActiveTab("chart")}
+          >
+            Chart
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "pools"}
+            className={activeTab === "pools" ? "active" : ""}
+            onClick={() => setActiveTab("pools")}
+          >
+            Pools
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "swap"}
+            className={activeTab === "swap" ? "active" : ""}
+            onClick={() => setActiveTab("swap")}
+          >
+            Swap
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "links"}
+            className={activeTab === "links" ? "active" : ""}
+            onClick={() => setActiveTab("links")}
+          >
+            Links
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "transactions"}
+            className={activeTab === "transactions" ? "active" : ""}
+            onClick={() => setActiveTab("transactions")}
+          >
+            Transactions
+          </button>
+        </div>
 
-	        {/* Tab content */}
-	        {activeTab === "chart" && (
-	          <section className="dchart">
-	            <div className="chart-src" role="tablist" aria-label="Chart source">
-            {showCustomChart && (
+        {/* Tab content */}
+        {activeTab === "chart" && (
+          <section className="dchart">
+            <div className="chart-src" role="tablist" aria-label="Chart source">
+              {showCustomChart && (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={effectiveSource === "custom"}
+                  className={effectiveSource === "custom" ? "active" : ""}
+                  onClick={() => setChartSource("custom")}
+                >
+                  Custom
+                </button>
+              )}
               <button
                 type="button"
                 role="tab"
-                aria-selected={effectiveSource === "custom"}
-                className={effectiveSource === "custom" ? "active" : ""}
-                onClick={() => setChartSource("custom")}
+                aria-selected={effectiveSource === "gecko"}
+                className={effectiveSource === "gecko" ? "active" : ""}
+                onClick={() => setChartSource("gecko")}
               >
-                Custom
+                GeckoTerminal
               </button>
-            )}
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveSource === "gecko"}
-              className={effectiveSource === "gecko" ? "active" : ""}
-              onClick={() => setChartSource("gecko")}
-            >
-              GeckoTerminal
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveSource === "birdeye"}
-              className={effectiveSource === "birdeye" ? "active" : ""}
-              onClick={() => setChartSource("birdeye")}
-            >
-              Birdeye
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveSource === "dexscreener"}
-              className={effectiveSource === "dexscreener" ? "active" : ""}
-              onClick={() => setChartSource("dexscreener")}
-            >
-              DexScreener
-            </button>
-          </div>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveSource === "birdeye"}
+                className={effectiveSource === "birdeye" ? "active" : ""}
+                onClick={() => setChartSource("birdeye")}
+              >
+                Birdeye
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveSource === "dexscreener"}
+                className={effectiveSource === "dexscreener" ? "active" : ""}
+                onClick={() => setChartSource("dexscreener")}
+              >
+                DexScreener
+              </button>
+            </div>
 
-          {loading ? (
-            <div className="loading"><div className="spinner" /> Loading token detail…</div>
-          ) : effectiveSource === "custom" ? (
-            <PriceChart data={ohlcv as NonNullable<TokenDetail["ohlcv"]>} />
-          ) : (
-            <>
-              <iframe
-                className="chart-iframe"
-                src={chartEmbedUrl}
-                title="Token chart"
-                loading="lazy"
-                referrerPolicy="no-referrer"
-              />
-              <div className="chart-open">
-                Tidak termuat di dalam halaman?{" "}
-                <a href={chartEmbedUrl} target="_blank" rel="noreferrer">
-                  Buka di{" "}
-                  {effectiveSource === "birdeye"
-                    ? "Birdeye"
-                    : effectiveSource === "dexscreener"
-                      ? "DexScreener"
-                      : "GeckoTerminal"}{" "}
-                  ↗
-                </a>
-              </div>
-            </>
-          )}
-        </section>
+            {loading ? (
+              <div className="loading"><div className="spinner" /> Loading token detail…</div>
+            ) : effectiveSource === "custom" ? (
+              <PriceChart data={ohlcv as NonNullable<TokenDetail["ohlcv"]>} />
+            ) : (
+              <>
+                <iframe
+                  className="chart-iframe"
+                  src={chartEmbedUrl}
+                  title="Token chart"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="chart-open">
+                  Tidak termuat di dalam halaman?{" "}
+                  <a href={chartEmbedUrl} target="_blank" rel="noreferrer">
+                    Buka di{" "}
+                    {effectiveSource === "birdeye"
+                      ? "Birdeye"
+                      : effectiveSource === "dexscreener"
+                        ? "DexScreener"
+                        : "GeckoTerminal"}{" "}
+                    ↗
+                  </a>
+                </div>
+              </>
+            )}
+          </section>
         )}
 
         {activeTab === "pools" && detail?.pools?.length ? (
@@ -430,78 +430,78 @@ export function TokenDetailModal({
                   <span className="muted mono">{formatAge(p.ageMs)}</span>
                 </a>
               ))}
-	            </div>
+            </div>
           </section>
-        )}
+        ) : null}
 
         {activeTab === "swap" && (
           <section className="dswap">
-          <DirectSwap
-            tokenAddress={address}
-            tokenSymbol={token.symbol}
-            tokenPriceUsd={token.priceUsd}
-          />
-          {detail?.pools && detail.pools.length > 0 ? (
-            <div className="swap-dexes">
-              <span className="muted">Liquidity on:</span>
-              <div className="row-actions">
-                {detail.pools.map((p) => (
-                  <a
-                    key={p.poolAddress}
-                    href={`https://dexscreener.com/${CHAIN.id}/${p.poolAddress}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {p.dexName}
-                  </a>
-                ))}
+            <DirectSwap
+              tokenAddress={address}
+              tokenSymbol={token.symbol}
+              tokenPriceUsd={token.priceUsd}
+            />
+            {detail?.pools && detail.pools.length > 0 ? (
+              <div className="swap-dexes">
+                <span className="muted">Liquidity on:</span>
+                <div className="row-actions">
+                  {detail.pools.map((p) => (
+                    <a
+                      key={p.poolAddress}
+                      href={`https://dexscreener.com/${CHAIN.id}/${p.poolAddress}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {p.dexName}
+                    </a>
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : null}
-          <p className="swap-note muted">
-            Swaps powered by Uniswap Protocol. Bridge and cross-chain routing
-            supported via Robinhood Chain (4663).
-          </p>
-        </section>
+            ) : null}
+            <p className="swap-note muted">
+              Swaps powered by Uniswap Protocol. Bridge and cross-chain routing
+              supported via Robinhood Chain (4663).
+            </p>
+          </section>
         )}
 
         {activeTab === "links" && (
           <section className="dlinks">
-          <div className="dsection-title">Links</div>
-          <div className="row-actions">
-            <a href={pair.links.dexscreener} target="_blank" rel="noreferrer">DexS</a>
-            <a href={pair.links.birdeye} target="_blank" rel="noreferrer">Birdeye</a>
-            {pair.links.geckoterminal ? (
-              <a href={pair.links.geckoterminal} target="_blank" rel="noreferrer">Geo</a>
-            ) : (
-              <a href={iframeUrl} target="_blank" rel="noreferrer">Geo</a>
-            )}
-            {pair.links.coingecko ? (
-              <a href={pair.links.coingecko} target="_blank" rel="noreferrer">CG</a>
-            ) : null}
-            {pair.links.coinmarketcap ? (
-              <a href={pair.links.coinmarketcap} target="_blank" rel="noreferrer">CMC</a>
-            ) : null}
-            <button type="button" onClick={() => copyText(address)} title="Copy address">
-              Copy
-            </button>
-          </div>
-
-          {(detail?.socials?.length || detail?.websites?.length) && (
-            <div className="d-socials">
-              {(detail?.websites || []).map((w, i) => (
-                <a key={`w${i}`} href={w.url} target="_blank" rel="noreferrer">
-                  {w.label || "Site"}
-                </a>
-              ))}
-              {(detail?.socials || []).map((s, i) => (
-                <a key={`s${i}`} href={s.url} target="_blank" rel="noreferrer">
-                  {s.type}
-                </a>
-              ))}
+            <div className="dsection-title">Links</div>
+            <div className="row-actions">
+              <a href={pair.links.dexscreener} target="_blank" rel="noreferrer">DexS</a>
+              <a href={pair.links.birdeye} target="_blank" rel="noreferrer">Birdeye</a>
+              {pair.links.geckoterminal ? (
+                <a href={pair.links.geckoterminal} target="_blank" rel="noreferrer">Geo</a>
+              ) : (
+                <a href={iframeUrl} target="_blank" rel="noreferrer">Geo</a>
+              )}
+              {pair.links.coingecko ? (
+                <a href={pair.links.coingecko} target="_blank" rel="noreferrer">CG</a>
+              ) : null}
+              {pair.links.coinmarketcap ? (
+                <a href={pair.links.coinmarketcap} target="_blank" rel="noreferrer">CMC</a>
+              ) : null}
+              <button type="button" onClick={() => copyText(address)} title="Copy address">
+                Copy
+              </button>
             </div>
-          )}
-        </section>
+
+            {(detail?.socials?.length || detail?.websites?.length) && (
+              <div className="d-socials">
+                {(detail?.websites || []).map((w, i) => (
+                  <a key={`w${i}`} href={w.url} target="_blank" rel="noreferrer">
+                    {w.label || "Site"}
+                  </a>
+                ))}
+                {(detail?.socials || []).map((s, i) => (
+                  <a key={`s${i}`} href={s.url} target="_blank" rel="noreferrer">
+                    {s.type}
+                  </a>
+                ))}
+              </div>
+            )}
+          </section>
         )}
 
         {activeTab === "transactions" && (
