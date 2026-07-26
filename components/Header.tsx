@@ -38,7 +38,7 @@ export function Header() {
           <div className="brand-mark" aria-hidden="true" />
           <div>
             <div className="brand-name">
-              Robinhood<span>Tracker</span>
+              Robinhood<span>Screener</span>
             </div>
             <div className="brand-sub">RH Chain · ID 4663</div>
           </div>

@@ -6,9 +6,7 @@ export function Footer() {
     <footer className="footer">
       <p>
         <strong>Robinhood Chain</strong> is an Arbitrum L2 (chain ID{" "}
-        <strong>4663</strong>). Data aggregated from GeckoTerminal, DexScreener,
-        and other public APIs across Uniswap V2/V3/V4, PancakeSwap, Bankr,
-        Virtuals pools.
+        <strong>4663</strong>).
       </p>
       {stats?.dexes?.length ? (
         <div className="dex-tags">

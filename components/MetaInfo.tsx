@@ -39,9 +39,6 @@ export function MetaInfo() {
           <ConnectionStatus />
         </span>
       </div>
-      <div>
-        Sources: {sources.length > 0 ? sources.join(" · ") : "—"}
-      </div>
     </div>
   );
 }
