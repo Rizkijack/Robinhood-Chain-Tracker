@@ -18,15 +18,19 @@
  *
  * The default is the official Robinhood-hosted public RPC. Override
  * it with NEXT_PUBLIC_RH_RPC_URL when you need a higher rate limit
- * or different region.
+ * or different region. For a keyed endpoint (Alchemy, etc.), set
+ * RH_RPC_URL (server-only, via lib/rpc.ts) — that key will NOT be
+ * included in the browser bundle.
  */
 
 import { defineChain } from "viem";
 import { CHAIN } from "@/lib/constants";
 
+// Browser-safe: no API key. Use NEXT_PUBLIC_RH_RPC_URL to override.
+// Keyed Alchemy endpoint lives in RH_RPC_URL (server-only, lib/rpc.ts).
 const RH_RPC =
   process.env.NEXT_PUBLIC_RH_RPC_URL ||
-  "https://robinhood-mainnet.g.alchemy.com/v2/qJtfjLqzeQL2yJ5NFXDjHNhtlyxwZyrD";
+  "https://rpc.mainnet.chain.robinhood.com";
 
 export const ROBINHOOD_RPC_URL = RH_RPC;
 

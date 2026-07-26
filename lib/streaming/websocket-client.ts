@@ -291,3 +291,5 @@ export class WebSocketClient {
     this.subscriptions.clear();
   }
 }
+
+export { WebSocketClient as BlockchainWebSocketClient };

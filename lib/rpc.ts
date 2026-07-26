@@ -32,16 +32,16 @@ import { robinhoodViemChain } from "./chains";
  * the rest of the process. Add new fallbacks to the END so a transient
  * outage at the top doesn't cascade to the whole stack.
  *
- *   1. NEXT_PUBLIC_RH_RPC_URL — the operator-supplied URL (may carry
- *      an Alchemy / Dwellir / Tenderly key).
- *   2. Robinhood's own public RPC (no key required).
- *   3. Publicnode / Dwellir community endpoint (no key required).
- *   4. Blockscout-style "no-node" fallback is intentionally omitted;
- *      we need a JSON-RPC node for eth_call / eth_getBalance.
+ *   1. RH_RPC_URL — server-only env var (Alchemy key or custom node).
+ *      Use this to supply a keyed Alchemy/Dwellir/Tenderly URL without
+ *      exposing it to the browser.
+ *   2. NEXT_PUBLIC_RH_RPC_URL — legacy / public override (no key).
+ *   3. Robinhood's own public RPC (no key required).
+ *   4. Community-run fallback (no key required).
+ *   Note: Blockscout-style "no-node" is intentionally omitted;
+ *         we need a JSON-RPC node for eth_call / eth_getBalance.
  * ──────────────────────────────────────────────────────────────── */
-const DEFAULT_RPCS = [
-  // Operator-provided Alchemy key (highest rate limit / reliability).
-  "https://robinhood-mainnet.g.alchemy.com/v2/qJtfjLqzeQL2yJ5NFXDjHNhtlyxwZyrD",
+const PUBLIC_FALLBACK_RPCS = [
   // Official Robinhood-hosted public RPC (no key required).
   "https://rpc.mainnet.chain.robinhood.com",
   // Community-run fallback (no key required).
@@ -49,9 +49,11 @@ const DEFAULT_RPCS = [
 ] as const;
 
 function candidateEndpoints(): string[] {
-  const fromEnv = process.env.NEXT_PUBLIC_RH_RPC_URL?.trim();
-  const envRpcs = fromEnv ? [fromEnv] : [];
-  return [...envRpcs, ...DEFAULT_RPCS].filter((u) => !!u);
+  // RH_RPC_URL is server-only (not exposed to browser) — use this for keyed endpoints.
+  const serverEnv = process.env.RH_RPC_URL?.trim();
+  // NEXT_PUBLIC_RH_RPC_URL is the legacy / client-visible override (no key expected).
+  const publicEnv = process.env.NEXT_PUBLIC_RH_RPC_URL?.trim();
+  return [serverEnv, publicEnv, ...PUBLIC_FALLBACK_RPCS].filter((u): u is string => !!u);
 }
 
 /* ── Tiny per-process cache ────────────────────────────────────────

@@ -241,8 +241,7 @@ export function PairTable({
               <tr>
                 <th style={{ width: 40 }}>#</th>
                 <th>Token</th>
-              <th style={{ width: 32 }}></th>
-              <th>Age</th>
+                <th>Age</th>
               <th>DEX</th>
               <th className="num">Price</th>
               <th className="num">5m</th>

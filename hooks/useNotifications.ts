@@ -80,14 +80,18 @@ export function useNotifications() {
           const title = `${pair.symbol} — New Pair`;
           const message = `${pair.name} • Liq $${pair.liquidityUsd ? (pair.liquidityUsd / 1_000_000).toFixed(1) + "M" : "?"}`;
 
-          if (permission === "granted") {
-            new Notification(title, {
-              body: message,
-              icon: pair.imageUrl || "/logo.svg",
-              tag: `newpair-${addr}`,
-            }).onclick = () => {
-              window.open(`https://dexscreener.com/${pair.dexId}/${pair.pairAddress}`, "_blank");
-            };
+          if (permission === "granted" && typeof Notification !== "undefined") {
+            try {
+              new Notification(title, {
+                body: message,
+                icon: pair.imageUrl || "/logo.svg",
+                tag: `newpair-${addr}`,
+              }).onclick = () => {
+                window.open(`https://dexscreener.com/${pair.dexId}/${pair.pairAddress}`, "_blank");
+              };
+            } catch {
+              /* ignore notification errors in unsupported contexts */
+            }
           }
 
           if (toastAlerts) {
@@ -116,14 +120,18 @@ export function useNotifications() {
           const title = `${pair.symbol} — Price ${direction}${Math.abs(currentChange).toFixed(1)}%`;
           const message = `${pair.name} • ${direction}${Math.abs(currentChange).toFixed(1)}% in 5m`;
 
-          if (permission === "granted") {
-            new Notification(title, {
-              body: message,
-              icon: pair.imageUrl || "/logo.svg",
-              tag: `spike-${addr}`,
-            }).onclick = () => {
-              window.open(`https://dexscreener.com/${pair.dexId}/${pair.pairAddress}`, "_blank");
-            };
+          if (permission === "granted" && typeof Notification !== "undefined") {
+            try {
+              new Notification(title, {
+                body: message,
+                icon: pair.imageUrl || "/logo.svg",
+                tag: `spike-${addr}`,
+              }).onclick = () => {
+                window.open(`https://dexscreener.com/${pair.dexId}/${pair.pairAddress}`, "_blank");
+              };
+            } catch {
+              /* ignore notification errors in unsupported contexts */
+            }
           }
 
           if (toastAlerts) {

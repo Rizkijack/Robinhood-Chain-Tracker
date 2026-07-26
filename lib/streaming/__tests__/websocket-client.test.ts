@@ -65,8 +65,8 @@ class MockWebSocket {
   }
 }
 
-// @ts-expect-error — mock global WebSocket
-global.WebSocket = MockWebSocket;
+// Mock global WebSocket safely for testing
+(globalThis as unknown as { WebSocket: unknown }).WebSocket = MockWebSocket;
 
 // ── Tests ────────────────────────────────────────────────────────
 
