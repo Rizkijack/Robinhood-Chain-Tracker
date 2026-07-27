@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import type { TrackedPair } from "@/lib/types";
 import { REFRESH_MS } from "@/lib/constants";
 import { useFeedStore, useFilterStore, useUiStore } from "@/lib/store";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useWhaleAlerts } from "@/hooks/useWhaleAlerts";
+import { usePriceAlerts } from "@/hooks/usePriceAlerts";
+import { useEntityActivity } from "@/components/EntityHeatmap";
+import { generateMockSentiment } from "@/components/SocialSentiment";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { SkeletonTable, SkeletonStatCard } from "./Skeleton";
 import { Header } from "./Header";
@@ -16,6 +20,11 @@ import { Footer } from "./Footer";
 import { PairTable } from "./PairTable";
 import { ToastContainer } from "./ToastContainer";
 import { useWatchlist } from "./Watchlist";
+import { WhaleAlertPanel } from "./WhaleAlertPanel";
+import { EntityHeatmap } from "./EntityHeatmap";
+import { SocialSentiment } from "./SocialSentiment";
+import { AdvancedFilters, applyAdvancedFilters, DEFAULT_FILTER } from "./AdvancedFilters";
+import type { AdvancedFilter } from "./AdvancedFilters";
 
 // Lazy-load wallet components — only needed when user interacts with wallet
 const WalletPortfolio = dynamic(
@@ -30,6 +39,14 @@ const TokenDetailModal = dynamic(
   () => import("./TokenDetailModal").then((m) => m.TokenDetailModal),
   { ssr: false }
 );
+const TokenComparison = dynamic(
+  () => import("./TokenComparison").then((m) => m.TokenComparison),
+  { ssr: false }
+);
+const AiTokenSummary = dynamic(
+  () => import("./AiTokenSummary").then((m) => m.AiTokenSummary),
+  { ssr: false }
+);
 
 export function TrackerApp() {
   const { feed, loading, error, loadFeed, loadStats } = useFeedStore();
@@ -37,19 +54,50 @@ export function TrackerApp() {
   const { autoRefresh, selected, setSelected } = useUiStore();
   const { items: watchlistItems, remove: removeFromWatchlist } = useWatchlist();
 
+  // Feature hooks
+  const { whales, isLoading: whalesLoading, error: whaleError, refetch: refetchWhales } = useWhaleAlerts();
+  const { alerts: priceAlerts, dismissAlert } = usePriceAlerts();
+  const { entities, isLoading: entitiesLoading } = useEntityActivity();
+  const sentimentItems = useMemo(() => generateMockSentiment(), []);
+
+  // Advanced filters state
+  const [advFilter, setAdvFilter] = useState<AdvancedFilter>(DEFAULT_FILTER);
+  const [advOpen, setAdvOpen] = useState(false);
+
+  // Token comparison state
+  const [compareTokens, setCompareTokens] = useState<TrackedPair[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
+
+  const addToCompare = useCallback((pair: TrackedPair) => {
+    setCompareTokens((prev) => {
+      if (prev.length >= 4) return prev;
+      if (prev.some((t) => t.pairAddress === pair.pairAddress)) return prev;
+      return [...prev, pair];
+    });
+    setShowCompare(true);
+  }, []);
+
+  const removeFromCompare = useCallback((index: number) => {
+    setCompareTokens((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length < 2) setShowCompare(false);
+      return next;
+    });
+  }, []);
+
   // Notification hook — watches feed changes and fires alerts
   useNotifications();
 
   // Load initial data on mount and when tab/query changes
   useEffect(() => {
-    if (tab === "portfolio" || tab === "watchlist") return; // Don't fetch for wallet tabs
+    if (tab === "portfolio" || tab === "watchlist") return;
     loadStats();
     loadFeed(tab, query);
   }, [loadFeed, loadStats, tab, query]);
 
   const refreshMs = feed?.recommendedRefreshMs ?? REFRESH_MS;
 
-  // Polling for feed data (pure polling, no SSE)
+  // Polling for feed data
   useEffect(() => {
     if (tab === "search" || tab === "portfolio" || tab === "watchlist" || !autoRefresh) return;
     const id = setInterval(() => {
@@ -58,7 +106,7 @@ export function TrackerApp() {
     return () => clearInterval(id);
   }, [autoRefresh, tab, loadFeed, refreshMs]);
 
-  // Polling for stats (lightweight, always uses simple polling)
+  // Polling for stats
   useEffect(() => {
     if (!autoRefresh || tab === "search" || tab === "portfolio" || tab === "watchlist") return;
     const id = setInterval(() => {
@@ -67,7 +115,6 @@ export function TrackerApp() {
     return () => clearInterval(id);
   }, [autoRefresh, tab, loadStats, refreshMs]);
 
-  // Derived: unique DEX options from feed data
   const dexOptions = useMemo(() => {
     const set = new Set<string>();
     for (const p of feed?.pairs || []) {
@@ -76,7 +123,7 @@ export function TrackerApp() {
     return [...set].sort();
   }, [feed]);
 
-  // Derived: filtered pairs based on filter criteria
+  // Derived: filtered pairs (basic + advanced filters)
   const filtered: TrackedPair[] = useMemo(() => {
     let list = feed?.pairs || [];
     const maxH = maxAgeHours === "" ? null : Number(maxAgeHours);
@@ -96,15 +143,18 @@ export function TrackerApp() {
     if (dexFilter !== "all") {
       list = list.filter((p) => p.dexName === dexFilter);
     }
+
+    // Apply advanced filters
+    list = applyAdvancedFilters(list, advFilter);
+
     return list;
-  }, [feed, maxAgeHours, minLiq, minVol, dexFilter]);
+  }, [feed, maxAgeHours, minLiq, minVol, dexFilter, advFilter]);
 
   const isSearchTab = tab === "search";
   const isPortfolioTab = tab === "portfolio";
   const isWatchlistTab = tab === "watchlist";
   const isDataTab = !isSearchTab && !isPortfolioTab && !isWatchlistTab;
 
-  // Resolve watchlist items to TrackedPair objects from feed
   const watchlistPairs = useMemo(() => {
     if (!feed?.pairs) return [];
     return watchlistItems
@@ -131,6 +181,56 @@ export function TrackerApp() {
           )}
         </ErrorBoundary>
 
+        {/* Price Alert Banners */}
+        {priceAlerts.length > 0 && (
+          <div style={{ marginBottom: "var(--sp-3)" }}>
+            {priceAlerts.slice(0, 3).map((alert) => (
+              <div key={alert.id} className="price-alert-bar">
+                <span className="price-alert-icon">🔔</span>
+                <span className="price-alert-text">{alert.message}</span>
+                <button
+                  type="button"
+                  className="price-alert-dismiss"
+                  onClick={() => dismissAlert(alert.id)}
+                >
+                  Dismiss
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Whale Alert Panel */}
+        {isDataTab && (
+          <ErrorBoundary>
+            <WhaleAlertPanel
+              whales={whales}
+              isLoading={whalesLoading}
+              error={whaleError}
+              onRefresh={refetchWhales}
+            />
+          </ErrorBoundary>
+        )}
+
+        {/* AI Token Summary for selected token */}
+        {selected && (
+          <ErrorBoundary>
+            <AiTokenSummary pair={selected} />
+          </ErrorBoundary>
+        )}
+
+        {/* Token Comparison */}
+        {showCompare && compareTokens.length >= 2 && (
+          <ErrorBoundary>
+            <TokenComparison
+              tokens={compareTokens}
+              onRemove={removeFromCompare}
+              onAdd={() => {}}
+              onClose={() => setShowCompare(false)}
+            />
+          </ErrorBoundary>
+        )}
+
         {!isSearchTab && (
           <ErrorBoundary>
             <Controls
@@ -138,6 +238,16 @@ export function TrackerApp() {
               filteredCount={filtered.length}
             />
           </ErrorBoundary>
+        )}
+
+        {/* Advanced Filters */}
+        {isDataTab && (
+          <AdvancedFilters
+            filter={advFilter}
+            onChange={setAdvFilter}
+            isOpen={advOpen}
+            onToggle={() => setAdvOpen(!advOpen)}
+          />
         )}
 
         <ErrorBoundary>
@@ -169,6 +279,18 @@ export function TrackerApp() {
             />
           )}
         </ErrorBoundary>
+
+        {/* Bottom panels: Entity Heatmap + Social Sentiment */}
+        {isDataTab && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--sp-4)", marginTop: "var(--sp-4)" }}>
+            <ErrorBoundary>
+              <EntityHeatmap entities={entities} isLoading={entitiesLoading} />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <SocialSentiment items={sentimentItems} />
+            </ErrorBoundary>
+          </div>
+        )}
 
         <Footer />
       </div>

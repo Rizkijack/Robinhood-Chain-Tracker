@@ -19,6 +19,7 @@ import "./styles/wallet.css";
 import "./styles/dapp.css";
 import "./styles/notifications.css";
 import "./styles/responsive.css";
+import "./styles/features.css";
 import { WalletProviders } from "@/components/WalletProviders";
 
 // ── Font configuration ─────────────────────────────────────────

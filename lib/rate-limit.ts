@@ -107,6 +107,12 @@ export const strictLimiter = new RateLimiter({
   windowMs: 60_000,
 });
 
+/** Whale alerts limiter — 10 req/min (heavy Arkham endpoint). */
+export const whaleLimiter = new RateLimiter({
+  maxRequests: 10,
+  windowMs: 60_000,
+});
+
 /**
  * Prune stale entries every 5 minutes for housekeeping.
  * ⚠️ Only runs while the Node.js process is alive (local dev).
