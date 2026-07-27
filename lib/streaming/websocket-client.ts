@@ -26,95 +26,130 @@ const DEFAULT_CONFIG: Required<
   reconnectMaxDelayMs: 30000,
 };
 
-export class WebSocketClient {
-  private config: Required<Omit<WebSocketClientConfig, "url">> & {
-    url: string;
-  };
+export interface ConnectResult {
+  ok: boolean;
+  reason: string;
+  latencyMs: number;
+}
+
+export class BlockchainWebSocketClient {
+  private config: Required<Omit<WebSocketClientConfig, "url">>;
   private ws: WebSocket | null = null;
+  private url: string = "";
   private connectTimeout: ReturnType<typeof setTimeout> | null = null;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
   private listeners: Map<keyof WebSocketEventMap, Set<Function>> = new Map();
-  private subscriptions: Map<string, string> = new Map(); // subId → subscriptionType
+  private subscriptions: Map<string, string> = new Map();
+  private pendingSubscriptions: Map<number, string> = new Map();
   private requestId = 0;
+  private connectResolve: ((result: ConnectResult) => void) | null = null;
+  private connectResolved = false;
+  private connectStartTime = 0;
+  private isDisposed = false;
 
-  constructor(config: WebSocketClientConfig) {
-    this.config = { ...DEFAULT_CONFIG, ...config, url: config.url };
+  constructor(config: WebSocketClientConfig = { url: "" }) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  /** Connect to the WebSocket endpoint. Returns true if connected within timeout. */
-  async connect(): Promise<boolean> {
-    // Don't connect if already connecting or connected
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-      return this.ws.readyState === WebSocket.OPEN;
+  /** Connect to the WebSocket endpoint. Returns a result object. */
+  async connect(url?: string): Promise<ConnectResult> {
+    if (url) {
+      this.url = url;
     }
+    this.connectStartTime = Date.now();
+    this.connectResolved = false;
+    this.isDisposed = false;
 
-    this.emit("connecting");
+    return new Promise<ConnectResult>((resolve) => {
+      this.connectResolve = resolve;
 
-    return new Promise<boolean>((resolve) => {
-      // Set connection timeout
       this.connectTimeout = setTimeout(() => {
+        if (this.connectResolved) return;
+        this.connectResolved = true;
         this.cleanup();
-        resolve(false);
+        this.emit("error", new Error("Connection timeout"));
+        resolve({ ok: false, reason: "ws-timeout", latencyMs: this.config.timeoutMs });
       }, this.config.timeoutMs);
 
       try {
-        this.ws = new WebSocket(this.config.url);
-
-        this.ws.onopen = () => {
-          if (this.connectTimeout) {
-            clearTimeout(this.connectTimeout);
-            this.connectTimeout = null;
-          }
-          this.reconnectAttempts = 0;
-          this.emit("open");
-          resolve(true);
-        };
-
-        this.ws.onmessage = (event) => {
-          this.handleMessage(event.data);
-        };
-
-        this.ws.onerror = () => {
-          // Don't resolve here — wait for onclose which fires after onerror
-        };
-
-        this.ws.onclose = (event) => {
-          if (this.connectTimeout) {
-            clearTimeout(this.connectTimeout);
-            this.connectTimeout = null;
-          }
-
-          this.emit("close", event.code, event.reason);
-
-          // If this was a connection attempt (not yet connected), reject
-          if (this.reconnectAttempts === 0 && this.subscriptions.size === 0) {
-            resolve(false);
-            return;
-          }
-
-          // If already connected, try to reconnect
-          this.attemptReconnect();
-        };
-      } catch (e) {
+        this.ws = new WebSocket(this.url);
+        this.setupWsHandlers();
+      } catch {
+        if (this.connectResolved) return;
+        this.connectResolved = true;
         if (this.connectTimeout) {
           clearTimeout(this.connectTimeout);
           this.connectTimeout = null;
         }
-        resolve(false);
+        this.emit("error", new Error("WebSocket constructor failed"));
+        resolve({ ok: false, reason: "ws-error", latencyMs: 0 });
       }
     });
   }
 
+  private setupWsHandlers(): void {
+    if (!this.ws) return;
+
+    this.ws.onopen = () => {
+      if (this.connectResolved) return;
+      this.connectResolved = true;
+      if (this.connectTimeout) {
+        clearTimeout(this.connectTimeout);
+        this.connectTimeout = null;
+      }
+      this.reconnectAttempts = 0;
+      const latency = Date.now() - this.connectStartTime;
+      this.emit("open", { url: this.url });
+      this.connectResolve?.({ ok: true, reason: "", latencyMs: latency });
+      this.connectResolve = null;
+    };
+
+    this.ws.onmessage = (event) => {
+      this.handleMessage(event.data);
+    };
+
+    this.ws.onerror = () => {
+      if (this.connectResolved) return;
+      this.connectResolved = true;
+      if (this.connectTimeout) {
+        clearTimeout(this.connectTimeout);
+        this.connectTimeout = null;
+      }
+      this.emit("error", new Error("WebSocket error"));
+      this.connectResolve?.({ ok: false, reason: "ws-error", latencyMs: 0 });
+      this.connectResolve = null;
+    };
+
+    this.ws.onclose = (event) => {
+      if (this.connectTimeout) {
+        clearTimeout(this.connectTimeout);
+        this.connectTimeout = null;
+      }
+
+      if (!this.connectResolved && this.connectResolve) {
+        this.connectResolved = true;
+        this.emit("error", new Error("WebSocket closed during connect"));
+        this.connectResolve({ ok: false, reason: "ws-error", latencyMs: 0 });
+        this.connectResolve = null;
+      }
+
+      if (!this.isDisposed) {
+        this.attemptReconnect();
+      }
+    };
+  }
+
   /** Disconnect and cleanup all resources. */
   disconnect(): void {
+    this.isDisposed = true;
     this.cleanup();
   }
 
   /** Subscribe to a blockchain event type. */
-  subscribe(type: "newHeads" | "logs" | "newPendingTransactions"): string | null {
+  subscribe(type: "newHeads" | "logs" | "newPendingTransactions"): string {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      return null;
+      return "";
     }
 
     const id = ++this.requestId;
@@ -126,9 +161,9 @@ export class WebSocketClient {
     });
 
     this.ws.send(payload);
-    // Subscription ID will be confirmed via message handler
-    this.subscriptions.set(`pending-${id}`, type);
-    return `pending-${id}`;
+    const pendingKey = `pending-${id}`;
+    this.pendingSubscriptions.set(id, type);
+    return pendingKey;
   }
 
   /** Unsubscribe from a subscription. */
@@ -210,25 +245,23 @@ export class WebSocketClient {
     try {
       parsed = JSON.parse(data);
     } catch {
-      return; // Ignore non-JSON messages
+      return;
     }
 
     const obj = parsed as Record<string, unknown>;
 
-    // Check if it's a subscription event
     if (obj.method === "eth_subscription" && obj.params) {
-      this.emit("message", {
-        jsonrpc: "2.0",
-        method: "eth_subscription",
-        params: obj.params as {
-          subscription: string;
-          result: Record<string, unknown>;
-        },
-      } as BlockchainEvent);
+      const params = obj.params as {
+        subscription: string;
+        result: Record<string, unknown>;
+      };
+      this.emit("event", {
+        subscription: params.subscription,
+        data: params.result,
+      });
       return;
     }
 
-    // Check if it's a JSON-RPC response (subscription confirmation)
     if (obj.id !== undefined && obj.jsonrpc === "2.0") {
       const response: JsonRpcResponse = {
         jsonrpc: "2.0",
@@ -237,13 +270,15 @@ export class WebSocketClient {
         error: obj.error as { code: number; message: string } | undefined,
       };
 
-      // If it's a subscription confirmation, store the real subscription ID
       if (response.result && typeof response.result === "string") {
-        const pendingKey = `pending-${response.id}`;
-        const subType = this.subscriptions.get(pendingKey);
-        if (subType) {
-          this.subscriptions.delete(pendingKey);
-          this.subscriptions.set(response.result, subType);
+        const pendingType = this.pendingSubscriptions.get(response.id);
+        if (pendingType) {
+          this.pendingSubscriptions.delete(response.id);
+          this.subscriptions.set(response.result, pendingType);
+          this.emit("subscribed", {
+            subscriptionId: response.result,
+            type: pendingType,
+          });
         }
       }
 
@@ -254,8 +289,7 @@ export class WebSocketClient {
   /** Attempt to reconnect with exponential backoff. */
   private attemptReconnect(): void {
     if (this.reconnectAttempts >= this.config.maxReconnects) {
-      // Max reconnects reached — emit error and stop
-      this.emit("error", new Error("Max reconnect attempts reached"));
+      this.emit("fallback", { reason: "ws-closed" });
       return;
     }
 
@@ -266,8 +300,9 @@ export class WebSocketClient {
     );
 
     this.reconnectTimeout = setTimeout(() => {
-      this.connect().then((connected) => {
-        if (!connected) {
+      if (this.isDisposed) return;
+      this.connect().then((result) => {
+        if (!result.ok && !this.isDisposed) {
           this.attemptReconnect();
         }
       });
@@ -289,7 +324,8 @@ export class WebSocketClient {
       this.ws = null;
     }
     this.subscriptions.clear();
+    this.pendingSubscriptions.clear();
   }
 }
 
-export { WebSocketClient as BlockchainWebSocketClient };
+export { BlockchainWebSocketClient as WebSocketClient };

@@ -174,7 +174,7 @@ export interface TokenTransaction {
   /** Transaction hash */
   hash: string;
   /** Transaction type */
-  type: 'buy' | 'sell';
+  type: 'buy' | 'sell' | 'transfer' | 'mint' | 'burn';
   /** Trader wallet address */
   trader: string;
   /** Token amount traded */
@@ -197,12 +197,16 @@ export interface TokenTransaction {
   isWhale?: boolean;
   /** Whether this is a mega whale transaction (auto-calculated: usdValue > 50000) */
   isMegaWhale?: boolean;
+  /** Entity/label from Arkham Intelligence (optional) */
+  entity?: string;
+  /** Arkham entity logo URL (optional) */
+  entityLogo?: string;
 }
 
 /** Transaction filter options */
 export interface TransactionFilter {
   /** Filter by type */
-  type: 'all' | 'buy' | 'sell';
+  type: 'all' | 'buy' | 'sell' | 'transfer' | 'mint' | 'burn';
   /** Filter by time range */
   timeRange: '15m' | '1h' | '24h' | 'all';
   /** Minimum USD value */

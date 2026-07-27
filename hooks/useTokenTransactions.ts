@@ -3,10 +3,22 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import type { TokenTransaction, TransactionFilter } from "@/lib/types";
 
-const POLLING_INTERVAL = 4000; // 4 seconds
+/**
+ * Client-side polling hook for the per-token transaction stream.
+ *
+ * Polls /api/token/{address}/transactions on a fixed cadence. The server-side
+ * route is the only source of truth — it pulls from Robinhood Explorer
+ * (Blockscout), normalizes everything there, and ships a clean
+ * `TokenTransaction[]` to the client. The client just renders.
+ *
+ * The hook is intentionally dumb: no normalization, no guessing. The
+ * server already did the work. Defensive code here only handles null
+ * fields that the API may omit (e.g. `usdValue` when the caller didn't
+ * pass a price).
+ */
+
+const POLLING_INTERVAL = 3_000; // 3s - faster polling for real-time transactions
 const MAX_TRANSACTIONS = 100;
-const WHALE_THRESHOLD = 10000; // $10k
-const MEGA_WHALE_THRESHOLD = 50000; // $50k
 
 interface UseTokenTransactionsReturn {
   transactions: TokenTransaction[];
@@ -38,11 +50,10 @@ export function useTokenTransactions(
     searchQuery: "",
   });
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const transactionsRef = useRef<TokenTransaction[]>([]);
   const isPausedRef = useRef(isPaused);
 
-  // Keep refs in sync
   useEffect(() => {
     isPausedRef.current = isPaused;
   }, [isPaused]);
@@ -68,7 +79,9 @@ export function useTokenTransactions(
     try {
       const params = new URLSearchParams();
       if (pairAddress) params.set("pairAddress", pairAddress);
-      if (tokenPriceUsd != null) params.set("priceUsd", String(tokenPriceUsd));
+      if (tokenPriceUsd != null && Number.isFinite(tokenPriceUsd)) {
+        params.set("priceUsd", String(tokenPriceUsd));
+      }
       if (tokenSymbol) params.set("symbol", tokenSymbol);
       const qs = params.toString();
       const response = await fetch(
@@ -85,31 +98,30 @@ export function useTokenTransactions(
         throw new Error(data.error);
       }
 
-      const newTransactions: TokenTransaction[] = (data.transactions || [])
-        .map((tx: any) => normalizeTransaction(tx, tokenAddress))
-        .filter((tx: TokenTransaction | null) => tx !== null);
+      // Sanitize each row before storing. Server already normalized, but
+      // be defensive: drop rows with invalid timestamps, cap huge numbers.
+      const cleaned: TokenTransaction[] = (data.transactions || [])
+        .map((tx: any): TokenTransaction | null => sanitizeRow(tx))
+        .filter((tx: TokenTransaction | null): tx is TokenTransaction => tx !== null);
 
-      // Deduplicate: keep only transactions not already in the list
-      const existingHashes = new Set(
-        transactionsRef.current.map((t) => t.hash)
-      );
-      const uniqueNew = newTransactions.filter(
-        (tx) => !existingHashes.has(tx.hash)
-      );
+      // Deduplicate against what we already have (server cache may overlap).
+      const known = new Set(transactionsRef.current.map((t) => t.hash));
+      const fresh = cleaned.filter((tx) => !known.has(tx.hash));
 
-      if (uniqueNew.length > 0) {
-        // Add new transactions at the beginning, sort by timestamp descending
-        const updated = [...uniqueNew, ...transactionsRef.current]
+      if (fresh.length > 0) {
+        const next = [...fresh, ...transactionsRef.current]
           .sort((a, b) => b.timestamp - a.timestamp)
           .slice(0, MAX_TRANSACTIONS);
-
-        setTransactions(updated);
+        setTransactions(next);
+      } else if (cleaned.length > 0 && transactionsRef.current.length === 0) {
+        // First load: even if no new ones, populate if list is empty.
+        setTransactions(cleaned.slice(0, MAX_TRANSACTIONS));
       }
 
       setLastUpdated(Date.now());
     } catch (err) {
       console.error("Failed to fetch transactions:", err);
-      setError(String(err));
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsLoading(false);
     }
@@ -119,7 +131,7 @@ export function useTokenTransactions(
     fetchTransactions();
   }, [fetchTransactions]);
 
-  // Start/stop polling based on tokenAddress and pause state
+  // Start/stop polling based on tokenAddress and pause state.
   useEffect(() => {
     if (!tokenAddress || isPaused) {
       if (intervalRef.current) {
@@ -129,10 +141,7 @@ export function useTokenTransactions(
       return;
     }
 
-    // Initial fetch
     fetchTransactions();
-
-    // Set up polling
     intervalRef.current = setInterval(fetchTransactions, POLLING_INTERVAL);
 
     return () => {
@@ -143,12 +152,10 @@ export function useTokenTransactions(
     };
   }, [tokenAddress, isPaused, fetchTransactions]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount.
   useEffect(() => {
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
@@ -166,57 +173,47 @@ export function useTokenTransactions(
 }
 
 /**
- * Normalize raw API transaction data to TokenTransaction interface
+ * Defensive sanitizer for a single transaction row coming from the API.
+ * Returns null if the row is unusable; otherwise returns a fully-typed
+ * `TokenTransaction` with every field explicitly set.
  */
-function normalizeTransaction(
-  raw: any,
-  tokenAddress: string
-): TokenTransaction | null {
-  try {
-    const hash = raw.hash || raw.tx_hash || raw.transaction_hash || "";
-    if (!hash) return null;
+function sanitizeRow(raw: any): TokenTransaction | null {
+  const hash = String(raw?.hash || "").trim();
+  if (!hash) return null;
 
-    const type = (raw.type || raw.transaction_type || "buy").toLowerCase() === "sell" ? "sell" : "buy";
-    const trader =
-      raw.trader || raw.from || raw.sender || raw.wallet_address || "";
-    const tokenAmount = parseFloat(
-      raw.amount || raw.token_amount || raw.quantity || "0"
-    );
-    const tokenSymbol =
-      raw.token_symbol || raw.symbol || raw.tokenSymbol || "TOKEN";
-    const usdValue = parseFloat(
-      raw.value_usd || raw.usd_value || raw.price_usd || raw.valueUSD || "0"
-    );
-    const timestamp = raw.timestamp
-      ? typeof raw.timestamp === "string"
-        ? new Date(raw.timestamp).getTime()
-        : raw.timestamp * 1000
-      : Date.now();
-    const gasUsed = raw.gas_used || raw.gasUsed;
-    const gasFee = raw.gas_fee || raw.gasFee;
-    const dexName = raw.dex_name || raw.dex || raw.dexName;
-    const blockNumber = raw.block_number || raw.blockNumber;
+  // Server returns timestamp in milliseconds. If we somehow get seconds
+  // (a 10-digit number), promote to ms. If we get a huge number (>13
+  // digits), it's already been doubled — strip a factor of 1000.
+  let ts = Number(raw?.timestamp);
+  if (!Number.isFinite(ts) || ts <= 0) return null;
+  if (ts < 1e11) ts = ts * 1000; // seconds → ms
+  if (ts > 1e15) ts = ts / 1000; // already-doubled → fix
+  // Sanity: clamp to a sane window (between 2020 and 2100).
+  if (ts < 1577836800000 || ts > 4102444800000) return null;
 
-    const isWhale = usdValue >= WHALE_THRESHOLD;
-    const isMegaWhale = usdValue >= MEGA_WHALE_THRESHOLD;
+  const type = String(raw?.type || "").toLowerCase();
+  const safeType: TokenTransaction["type"] =
+    type === "sell" || type === "burn" || type === "mint" || type === "transfer"
+      ? (type as TokenTransaction["type"])
+      : "buy";
 
-    return {
-      hash,
-      type,
-      trader,
-      tokenAmount,
-      tokenSymbol,
-      usdValue,
-      timestamp,
-      gasUsed,
-      gasFee,
-      dexName,
-      blockNumber,
-      isWhale,
-      isMegaWhale,
-    };
-  } catch (err) {
-    console.error("Failed to normalize transaction:", err);
-    return null;
-  }
+  const tokenAmount = Number.isFinite(raw?.tokenAmount) ? Number(raw.tokenAmount) : 0;
+  const usdValue = Number.isFinite(raw?.usdValue) ? Number(raw.usdValue) : 0;
+  const gasFee = Number.isFinite(raw?.gasFee) ? Number(raw.gasFee) : undefined;
+
+  return {
+    hash,
+    type: safeType,
+    trader: String(raw?.trader || ""),
+    tokenAmount,
+    tokenSymbol: String(raw?.tokenSymbol || "TOKEN"),
+    usdValue,
+    timestamp: ts,
+    gasUsed: Number.isFinite(raw?.gasUsed) ? Number(raw.gasUsed) : undefined,
+    gasFee,
+    dexName: raw?.dexName ? String(raw.dexName) : undefined,
+    blockNumber: raw?.blockNumber ? String(raw.blockNumber) : undefined,
+    isWhale: Boolean(raw?.isWhale) || usdValue >= 10_000,
+    isMegaWhale: Boolean(raw?.isMegaWhale) || usdValue >= 50_000,
+  };
 }

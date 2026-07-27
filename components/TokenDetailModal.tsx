@@ -16,6 +16,8 @@ import { TransactionStream } from "./TransactionStream";
 import { SocialLinks } from "./SocialLinks";
 import { useTokenTransactions } from "@/hooks/useTokenTransactions";
 import { useWatchlist, WatchlistStar } from "./Watchlist";
+import { blockscoutAddressUrl, blockscoutTxUrl } from "@/lib/sources/blockscout";
+import { arkhamAddressUrl, arkhamTxUrl } from "@/lib/sources/arkham";
 
 function Stat({
   label,
@@ -555,28 +557,38 @@ export function TokenDetailModal({
         {activeTab === "transactions" && (
           <section className="dtransactions">
             <div className="dsection-title">
-              Live Transaction Stream
+              Live Transactions
               <span className="tx-source">
-                Source: GeckoTerminal + DexScreener (real-time)
+                Source: Arkham Intelligence — real-time
               </span>
             </div>
             <div className="tx-explorer-link-row">
               <a
-                href={`https://dexscreener.com/${CHAIN.id}/${pair.pairAddress || pair.tokenAddress}`}
+                href={arkhamAddressUrl(address)}
                 target="_blank"
                 rel="noreferrer"
                 className="tx-explorer-link"
               >
-                View on DexScreener ↗
+                View on Arkham Intelligence ↗
               </a>
               <a
-                href={pair.links.geckoterminal || `https://www.geckoterminal.com/${CHAIN.id}/tokens/${address}`}
+                href={blockscoutAddressUrl(address)}
                 target="_blank"
                 rel="noreferrer"
                 className="tx-explorer-link"
               >
-                View on GeckoTerminal ↗
+                View on Robinhood Explorer ↗
               </a>
+              {pair.pairAddress && (
+                <a
+                  href={arkhamAddressUrl(pair.pairAddress)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="tx-explorer-link"
+                >
+                  Pool on Arkham ↗
+                </a>
+              )}
             </div>
             <TransactionStream
               transactions={transactions}
@@ -588,6 +600,7 @@ export function TokenDetailModal({
               onSetFilter={setFilter}
               onRefetch={refetch}
               tokenSymbol={token.symbol}
+              explorerUrlBuilder={arkhamTxUrl}
             />
           </section>
         )}

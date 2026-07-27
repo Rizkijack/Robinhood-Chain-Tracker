@@ -57,6 +57,7 @@ export const SOURCE_TIMING: Record<string, SourceTiming> = {
   geckoterminal: { cacheTtlMs: 30_000, refreshMs: 30_000 },
   coingecko: { cacheTtlMs: 60_000, refreshMs: 60_000 },
   coinmarketcap: { cacheTtlMs: 300_000, refreshMs: 300_000, requiresApiKey: true, apiKeyEnv: "COINMARKETCAP_API_KEY" },
+  arkham: { cacheTtlMs: 8_000, refreshMs: 5_000, requiresApiKey: true, apiKeyEnv: "ARKHAM_API_KEY" },
 };
 
 /** Sources that are currently usable given the environment (API keys, etc.). */

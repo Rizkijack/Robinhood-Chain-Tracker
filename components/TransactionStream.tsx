@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useMemo, useRef } from "react";
 import type { TokenTransaction, TransactionFilter } from "@/lib/types";
-import { shortAddr, formatUsd, formatPrice } from "@/lib/format";
+import { shortAddr, formatUsd, formatPrice, formatAge } from "@/lib/format";
+import { arkhamTxUrl } from "@/lib/sources/arkham";
 
 interface TransactionStreamProps {
   transactions: TokenTransaction[];
@@ -14,6 +15,8 @@ interface TransactionStreamProps {
   onSetFilter: (filter: Partial<TransactionFilter>) => void;
   onRefetch: () => void;
   tokenSymbol?: string;
+  /** Explorer base URL to deep-link each row. Defaults to Blockscout/Robinhood. */
+  explorerUrlBuilder?: (hash: string) => string;
 }
 
 export function TransactionStream({
@@ -26,141 +29,93 @@ export function TransactionStream({
   onSetFilter,
   onRefetch,
   tokenSymbol = "TOKEN",
+  explorerUrlBuilder,
 }: TransactionStreamProps) {
   const [flashStates, setFlashStates] = useState<Record<string, boolean>>({});
   const prevTxCountRef = useRef(0);
 
-  // Filter transactions based on current filter
+  // Apply the four filters the user picked.
   const filteredTransactions = useMemo(() => {
     let filtered = [...transactions];
 
-    // Filter by type
     if (filter.type !== "all") {
       filtered = filtered.filter((tx) => tx.type === filter.type);
     }
 
-    // Filter by time range
     if (filter.timeRange !== "all") {
       const now = Date.now();
-      const timeRanges = {
+      const ranges: Record<string, number> = {
         "15m": 15 * 60 * 1000,
         "1h": 60 * 60 * 1000,
         "24h": 24 * 60 * 60 * 1000,
       };
-      const rangeMs = timeRanges[filter.timeRange as keyof typeof timeRanges];
-      filtered = filtered.filter((tx) => now - tx.timestamp <= rangeMs);
+      const rangeMs = ranges[filter.timeRange];
+      if (rangeMs) {
+        filtered = filtered.filter((tx) => now - tx.timestamp <= rangeMs);
+      }
     }
 
-    // Filter by minimum value
     if (filter.minValue > 0) {
       filtered = filtered.filter((tx) => tx.usdValue >= filter.minValue);
     }
 
-    // Filter by search query (wallet address)
     if (filter.searchQuery) {
-      const query = filter.searchQuery.toLowerCase();
+      const q = filter.searchQuery.toLowerCase();
       filtered = filtered.filter(
         (tx) =>
-          tx.trader.toLowerCase().includes(query) ||
-          tx.hash.toLowerCase().includes(query)
+          tx.trader.toLowerCase().includes(q) ||
+          tx.hash.toLowerCase().includes(q)
       );
     }
 
     return filtered;
   }, [transactions, filter]);
 
-  // Flash new transactions
+  // Flash new rows on arrival for a moment so the user can spot them.
   useEffect(() => {
-    if (transactions.length > prevTxCountRef.current && prevTxCountRef.current > 0) {
-      const newTxCount = transactions.length - prevTxCountRef.current;
-      const newTxs = transactions.slice(0, newTxCount);
-      const newFlashStates: Record<string, boolean> = {};
+    if (
+      transactions.length > prevTxCountRef.current &&
+      prevTxCountRef.current > 0
+    ) {
+      const newCount = transactions.length - prevTxCountRef.current;
+      const newTxs = transactions.slice(0, newCount);
+      const next: Record<string, boolean> = {};
       newTxs.forEach((tx) => {
-        newFlashStates[tx.hash] = true;
+        next[tx.hash] = true;
       });
-
-      setFlashStates((prev) => ({ ...prev, ...newFlashStates }));
-
-      // Remove flash after 2 seconds
-      setTimeout(() => {
+      setFlashStates((prev) => ({ ...prev, ...next }));
+      const t = setTimeout(() => {
         setFlashStates((prev) => {
-          const updated = { ...prev };
-          newTxs.forEach((tx) => {
-            delete updated[tx.hash];
-          });
-          return updated;
+          const out = { ...prev };
+          newTxs.forEach((tx) => delete out[tx.hash]);
+          return out;
         });
       }, 2000);
+      prevTxCountRef.current = transactions.length;
+      return () => clearTimeout(t);
     }
     prevTxCountRef.current = transactions.length;
   }, [transactions]);
 
-  const formatTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ago`;
-  };
+  const linkFor = explorerUrlBuilder ?? arkhamTxUrl;
 
   return (
     <section className="transaction-stream">
-      <div className="dsection-title">
-        Live Transaction Stream
-        {transactions.length > 0 && (
-          <span className="tx-count">{filteredTransactions.length} txns</span>
-        )}
-      </div>
-
-      {/* Controls */}
-      <div className="tx-controls">
-        <div className="tx-filter-group">
-          <select
-            value={filter.type}
-            onChange={(e) =>
-              onSetFilter({ type: e.target.value as TransactionFilter["type"] })
-            }
-            className="tx-select"
-          >
-            <option value="all">All</option>
-            <option value="buy">Buy only</option>
-            <option value="sell">Sell only</option>
-          </select>
-
-          <select
-            value={filter.timeRange}
-            onChange={(e) =>
-              onSetFilter({
-                timeRange: e.target.value as TransactionFilter["timeRange"],
-              })
-            }
-            className="tx-select"
-          >
-            <option value="15m">Last 15m</option>
-            <option value="1h">Last 1h</option>
-            <option value="24h">Last 24h</option>
-            <option value="all">All time</option>
-          </select>
-
-          <select
-            value={filter.minValue}
-            onChange={(e) =>
-              onSetFilter({ minValue: Number(e.target.value) })
-            }
-            className="tx-select"
-          >
-            <option value="0">Any size</option>
-            <option value="1000">Min $1k</option>
-            <option value="10000">Min $10k</option>
-            <option value="100000">Min $100k</option>
-          </select>
+      <div className="tx-stream-header">
+        <div className="tx-stream-title">
+          <span className="dsection-title" style={{ margin: 0 }}>
+            Live Transactions
+          </span>
+          {transactions.length > 0 && (
+            <span className="tx-count">
+              {filteredTransactions.length}/{transactions.length}
+            </span>
+          )}
         </div>
-
-        <div className="tx-actions">
+        <div className="tx-stream-controls">
           <button
             type="button"
-            className={`tx-pause-btn ${isPaused ? "paused" : ""}`}
+            className={`tx-control-btn ${isPaused ? "paused" : ""}`}
             onClick={onTogglePause}
             title={isPaused ? "Resume stream" : "Pause stream"}
           >
@@ -168,38 +123,101 @@ export function TransactionStream({
           </button>
           <button
             type="button"
-            className="tx-refresh-btn"
+            className="tx-control-btn"
             onClick={onRefetch}
             title="Refresh now"
           >
-            ↻
+            ↻ Refresh
           </button>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="tx-search">
-        <input
-          type="text"
-          placeholder="Search by wallet address..."
-          value={filter.searchQuery}
-          onChange={(e) => onSetFilter({ searchQuery: e.target.value })}
-          className="tx-search-input"
-        />
+      <div className="tx-filters">
+        <div className="tx-filter-group">
+          <label>Type</label>
+          <select
+            value={filter.type}
+            onChange={(e) =>
+              onSetFilter({ type: e.target.value as TransactionFilter["type"] })
+            }
+          >
+            <option value="all">All</option>
+            <option value="buy">Buy</option>
+            <option value="sell">Sell</option>
+            <option value="transfer">Transfer</option>
+            <option value="mint">Mint</option>
+            <option value="burn">Burn</option>
+          </select>
+        </div>
+
+        <div className="tx-filter-group">
+          <label>Time</label>
+          <select
+            value={filter.timeRange}
+            onChange={(e) =>
+              onSetFilter({
+                timeRange: e.target.value as TransactionFilter["timeRange"],
+              })
+            }
+          >
+            <option value="15m">Last 15m</option>
+            <option value="1h">Last 1h</option>
+            <option value="24h">Last 24h</option>
+            <option value="all">All time</option>
+          </select>
+        </div>
+
+        <div className="tx-filter-group">
+          <label>Min value</label>
+          <select
+            value={filter.minValue}
+            onChange={(e) => onSetFilter({ minValue: Number(e.target.value) })}
+          >
+            <option value="0">Any size</option>
+            <option value="100">≥ $100</option>
+            <option value="1000">≥ $1k</option>
+            <option value="10000">≥ $10k</option>
+            <option value="50000">≥ $50k</option>
+          </select>
+        </div>
+
+        <div className="tx-filter-group" style={{ flex: 1, minWidth: 140 }}>
+          <label>Search</label>
+          <input
+            type="text"
+            placeholder="Wallet or tx hash…"
+            value={filter.searchQuery}
+            onChange={(e) => onSetFilter({ searchQuery: e.target.value })}
+            className="tx-search-input"
+          />
+        </div>
       </div>
 
-      {/* Transaction List */}
+      {/* Column header — the requested Time / Hash / Amount / Gas layout */}
+      <div className="tx-cols-header" aria-hidden="true">
+        <span className="tx-col-type">Type</span>
+        <span className="tx-col-time">Time</span>
+        <span className="tx-col-hash">Hash / Wallet</span>
+        <span className="tx-col-amount">Amount</span>
+        <span className="tx-col-value">Value</span>
+        <span className="tx-col-gas">Gas</span>
+        <span className="tx-col-link" />
+      </div>
+
       <div className="tx-list">
         {error ? (
-          <div className="tx-error">Error: {error}</div>
+          <div className="tx-error">
+            Failed to load transactions: {error}
+          </div>
         ) : isLoading && transactions.length === 0 ? (
           <div className="tx-loading">
-            <div className="spinner" /> Loading transactions...
+            <div className="spinner" /> Loading transactions from Arkham
+            Intelligence…
           </div>
         ) : filteredTransactions.length === 0 ? (
           <div className="tx-empty">
             {transactions.length === 0
-              ? "No transactions yet. Waiting for live data..."
+              ? "No transactions yet. Waiting for live data from Arkham Intelligence…"
               : "No transactions match your filters."}
           </div>
         ) : (
@@ -207,9 +225,9 @@ export function TransactionStream({
             <TransactionRow
               key={tx.hash}
               tx={tx}
-              isFlashing={flashStates[tx.hash]}
+              isFlashing={Boolean(flashStates[tx.hash])}
               tokenSymbol={tokenSymbol}
-              formatTimeAgo={formatTimeAgo}
+              explorerUrl={linkFor(tx.hash)}
             />
           ))
         )}
@@ -222,78 +240,129 @@ function TransactionRow({
   tx,
   isFlashing,
   tokenSymbol,
-  formatTimeAgo,
+  explorerUrl,
 }: {
   tx: TokenTransaction;
   isFlashing: boolean;
   tokenSymbol: string;
-  formatTimeAgo: (timestamp: number) => string;
+  explorerUrl: string;
 }) {
   const rowClass = [
     "tx-row",
-    tx.type,
-    isFlashing ? "flash" : "",
-    tx.isMegaWhale ? "mega-whale" : tx.isWhale ? "whale" : "",
+    `tx-${tx.type}`,
+    isFlashing ? "tx-flash" : "",
+    tx.isMegaWhale ? "tx-mega-whale" : tx.isWhale ? "tx-whale" : "",
   ]
     .filter(Boolean)
     .join(" ");
 
+  const sign =
+    tx.type === "buy"
+      ? "+"
+      : tx.type === "sell" || tx.type === "burn"
+        ? "−" // unicode minus for visual width
+        : "↔";
+
+  // Display: "1.23M TOKEN" — never show "0 TOKEN" if the value is actually
+  // present but tiny. Cap displayed precision to 6 digits.
+  const amountLabel = formatAmount(tx.tokenAmount);
+  const valueLabel = tx.usdValue > 0 ? formatUsd(tx.usdValue) : "—";
+  const gasLabel = formatGas(tx.gasFee);
+
   return (
     <div className={rowClass}>
-      <div className="tx-type-badge">
-        {tx.type === "buy" ? "⊕ BUY" : "⊖ SELL"}
-      </div>
+      <span className="tx-col-type">
+        <span className={`tx-type-badge tx-type-${tx.type}`}>
+          {tx.type === "buy" && "⊕ BUY"}
+          {tx.type === "sell" && "⊖ SELL"}
+          {tx.type === "transfer" && "↔ TRANSFER"}
+          {tx.type === "mint" && "✦ MINT"}
+          {tx.type === "burn" && "✦ BURN"}
+        </span>
+      </span>
 
-      <div className="tx-main">
-        <div className="tx-header">
-          <span
-            className="tx-trader"
-            title={tx.trader}
-            onClick={() => navigator.clipboard.writeText(tx.trader)}
-          >
-            {shortAddr(tx.trader, 6, 4)}
-          </span>
-          <span className="tx-time">{formatTimeAgo(tx.timestamp)}</span>
-        </div>
+      <span className="tx-col-time" title={new Date(tx.timestamp).toISOString()}>
+        {formatAge(Date.now() - tx.timestamp)} ago
+      </span>
 
-        <div className="tx-details">
-          <span className="tx-amount">
-            {tx.type === "buy" ? "+" : "-"}
-            {formatPrice(tx.tokenAmount)} {tx.tokenSymbol}
-          </span>
-          <span className="tx-value">(${formatUsd(tx.usdValue)})</span>
-        </div>
-
-        {(tx.gasFee || tx.dexName) && (
-          <div className="tx-meta">
-            {tx.dexName && <span className="tx-dex">{tx.dexName}</span>}
-            {tx.gasFee && (
-              <span className="tx-gas">
-                Gas: {formatPrice(tx.gasFee)} ETH
-              </span>
-            )}
-          </div>
-        )}
-
-        {tx.isMegaWhale && (
-          <span className="whale-tag mega">🐳 Mega Whale</span>
-        )}
+      <span className="tx-col-hash">
+        <a
+          href={explorerUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="tx-hash-link"
+          title={tx.hash}
+        >
+          {shortAddr(tx.hash, 6, 4)}
+        </a>
+        <span
+          className="tx-trader"
+          title={tx.trader}
+          onClick={() => navigator.clipboard?.writeText(tx.trader)}
+        >
+          {tx.entity ? (
+            <span className="tx-entity" title={`${tx.entity} (${tx.trader})`}>
+              {tx.entityLogo && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={tx.entityLogo} alt="" className="tx-entity-logo" width={14} height={14} />
+              )}
+              {tx.entity}
+            </span>
+          ) : (
+            shortAddr(tx.trader, 6, 4)
+          )}
+        </span>
+        {tx.isMegaWhale && <span className="whale-tag mega">🐳 Mega</span>}
         {!tx.isMegaWhale && tx.isWhale && (
           <span className="whale-tag">🐋 Whale</span>
         )}
-      </div>
+      </span>
 
-      <div className="tx-actions">
+      <span className="tx-col-amount" title={String(tx.tokenAmount)}>
+        <span className="tx-amount-text">
+          {sign} {amountLabel}{" "}
+          <span className="muted">{tx.tokenSymbol || tokenSymbol}</span>
+        </span>
+      </span>
+
+      <span className="tx-col-value">{valueLabel}</span>
+
+      <span className="tx-col-gas" title={tx.gasUsed ? `${tx.gasUsed} gas` : ""}>
+        {gasLabel}
+      </span>
+
+      <span className="tx-col-link">
         <a
-          href={`https://explorer.robinhoodchain.com/tx/${tx.hash}`}
+          href={explorerUrl}
           target="_blank"
           rel="noreferrer"
           className="tx-explorer-link"
-          title="View on explorer"
+          title="View on Arkham Intelligence"
         >
-          🔗
+          ↗
         </a>
-      </div>
+      </span>
     </div>
   );
+}
+
+// ── formatters ─────────────────────────────────────────────────────────
+
+function formatAmount(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0";
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+  if (abs >= 1e3) return `${(n / 1e3).toFixed(2)}K`;
+  if (abs >= 1) return n.toFixed(2);
+  if (abs >= 0.0001) return n.toFixed(6);
+  return n.toExponential(2);
+}
+
+function formatGas(eth: number | undefined): string {
+  if (eth == null || !Number.isFinite(eth) || eth <= 0) return "—";
+  if (eth < 0.000001) return `${(eth * 1e9).toFixed(2)} gwei`;
+  if (eth < 0.001) return `${(eth * 1e6).toFixed(2)} μETH`;
+  if (eth < 1) return `${(eth * 1000).toFixed(2)} mETH`;
+  return `${eth.toFixed(4)} ETH`;
 }

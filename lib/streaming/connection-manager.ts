@@ -105,9 +105,9 @@ class ConnectionManager {
 
   private connectWithWebSocket(wsUrl: string): void {
     this.connectionMethod = "websocket";
-    this.client = new BlockchainWebSocketClient({ url: wsUrl });
+    this.client = new BlockchainWebSocketClient();
 
-    this.client.on("open", () => {
+    this.client.on("open", ({ url }) => {
       this.snapshot = {
         ...this.snapshot,
         status: "connected",
@@ -123,21 +123,25 @@ class ConnectionManager {
       }
     });
 
-    this.client.on("message", (data) => {
-      if ("params" in data && data.method === "eth_subscription") {
-        this.handleEventData((data as any).params.result);
-      }
+    this.client.on("event", ({ subscription, data }) => {
+      this.handleEventData(data);
     });
 
-    this.client.on("close", () => {
-      this.handleConnectionClose();
+    this.client.on("fallback", ({ reason }) => {
+      this.snapshot = {
+        ...this.snapshot,
+        status: "connected",
+        method: "polling",
+        reason: "streaming-unavailable",
+      };
+      this.emit();
     });
 
     this.client.on("error", (error) => {
       console.error("WebSocket error:", error);
     });
 
-    void this.client.connect();
+    void this.client.connect(wsUrl);
   }
 
   private connectWithSSE(sseUrl: string): void {

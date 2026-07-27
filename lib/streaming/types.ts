@@ -48,11 +48,14 @@ export interface BlockchainEvent {
 
 /** WebSocket client events (event emitter pattern). */
 export type WebSocketEventMap = {
-  open: () => void;
+  open: (data: { url: string }) => void;
   message: (event: BlockchainEvent | JsonRpcResponse) => void;
   error: (error: Error) => void;
   close: (code: number, reason: string) => void;
   connecting: () => void;
+  fallback: (data: { reason: string }) => void;
+  subscribed: (data: { subscriptionId: string; type: string }) => void;
+  event: (data: { subscription: string; data: unknown }) => void;
 };
 
 /** Configuration for the WebSocket client. */
