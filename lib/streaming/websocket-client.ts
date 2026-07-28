@@ -24,6 +24,8 @@ const DEFAULT_CONFIG: Required<
   maxReconnects: 3,
   reconnectBaseDelayMs: 1000,
   reconnectMaxDelayMs: 30000,
+  pingIntervalMs: 30_000,
+  pongTimeoutMs: 5_000,
 };
 
 export interface ConnectResult {
@@ -47,6 +49,11 @@ export class BlockchainWebSocketClient {
   private connectResolved = false;
   private connectStartTime = 0;
   private isDisposed = false;
+
+  // ── Heartbeat / ping-pong ─────────────────────────────────
+  private pingTimer: ReturnType<typeof setInterval> | null = null;
+  private pongTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastPingId = 0;
 
   constructor(config: WebSocketClientConfig = { url: "" }) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -103,6 +110,9 @@ export class BlockchainWebSocketClient {
       this.emit("open", { url: this.url });
       this.connectResolve?.({ ok: true, reason: "", latencyMs: latency });
       this.connectResolve = null;
+
+      // Start heartbeat after successful connection
+      this.startHeartbeat();
     };
 
     this.ws.onmessage = (event) => {
@@ -143,6 +153,7 @@ export class BlockchainWebSocketClient {
   /** Disconnect and cleanup all resources. */
   disconnect(): void {
     this.isDisposed = true;
+    this.stopHeartbeat();
     this.cleanup();
   }
 
@@ -282,6 +293,11 @@ export class BlockchainWebSocketClient {
         }
       }
 
+      // Check if this is a pong response (reply to our heartbeat ping)
+      if (response.id === this.lastPingId) {
+        this.clearPongTimeout();
+      }
+
       this.emit("message", response);
     }
   }
@@ -309,8 +325,74 @@ export class BlockchainWebSocketClient {
     }, delay);
   }
 
+  // ── Heartbeat ────────────────────────────────────────────────
+
+  /** Start the heartbeat cycle. Sends `eth_blockNumber` as a lightweight ping. */
+  private startHeartbeat(): void {
+    if (!this.config.pingIntervalMs) return; // disabled
+    this.stopHeartbeat(); // clear any existing timers
+
+    this.pingTimer = setInterval(() => {
+      this.sendPing();
+    }, this.config.pingIntervalMs);
+
+    if (typeof this.pingTimer === "object" && "unref" in this.pingTimer) {
+      this.pingTimer.unref();
+    }
+  }
+
+  /** Stop the heartbeat cycle. */
+  private stopHeartbeat(): void {
+    this.clearPongTimeout();
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
+  }
+
+  /** Send a lightweight JSON-RPC ping (`eth_blockNumber`). */
+  private sendPing(): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    if (this.pongTimer) return; // still waiting for previous pong — skip to avoid overlap
+
+    this.lastPingId = ++this.requestId;
+    const payload = JSON.stringify({
+      id: this.lastPingId,
+      jsonrpc: "2.0",
+      method: "eth_blockNumber",
+      params: [],
+    });
+
+    this.ws.send(payload);
+
+    // Set pong timeout — if no response arrives, connection is dead
+    const timeout = this.config.pongTimeoutMs;
+    if (timeout) {
+      this.pongTimer = setTimeout(() => {
+        this.emit("error", new Error("Pong timeout — no response from node"));
+        // Force-close to trigger reconnect
+        if (this.ws && !this.isDisposed) {
+          this.ws.close();
+        }
+      }, timeout);
+      if (typeof this.pongTimer === "object" && "unref" in this.pongTimer) {
+        this.pongTimer.unref();
+      }
+    }
+  }
+
+  /** Clear the pending pong timeout. */
+  private clearPongTimeout(): void {
+    if (this.pongTimer) {
+      clearTimeout(this.pongTimer);
+      this.pongTimer = null;
+    }
+    this.lastPingId = 0;
+  }
+
   /** Cleanup all resources. */
   private cleanup(): void {
+    this.stopHeartbeat();
     if (this.connectTimeout) {
       clearTimeout(this.connectTimeout);
       this.connectTimeout = null;

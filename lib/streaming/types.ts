@@ -70,6 +70,17 @@ export interface WebSocketClientConfig {
   reconnectBaseDelayMs?: number;
   /** Max delay for exponential backoff in ms (default: 30000) */
   reconnectMaxDelayMs?: number;
+  /**
+   * Interval between heartbeat pings (ms).
+   * The client sends `eth_blockNumber` as a lightweight JSON-RPC ping.
+   * Default: 30_000 (30s). Set to 0 to disable.
+   */
+  pingIntervalMs?: number;
+  /**
+   * Time to wait for a pong response before considering the
+   * connection dead (ms). Default: 5_000 (5s).
+   */
+  pongTimeoutMs?: number;
 }
 
 /** Configuration for the connection manager. */
