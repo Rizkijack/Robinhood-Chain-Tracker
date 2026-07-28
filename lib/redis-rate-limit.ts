@@ -47,6 +47,12 @@ function getRedis(): Redis | null {
 type Entry = { expires: number };
 const memStore = new Map<string, Entry & { count: number }>();
 
+/** Reset the Redis client singleton (test helper). */
+export function _resetRedisClient(): void {
+  _redis = undefined;
+  memStore.clear();
+}
+
 // ─── RedisRateLimiter ──────────────────────────────────────────────────────
 
 export class RedisRateLimiter implements IRateLimiter {
