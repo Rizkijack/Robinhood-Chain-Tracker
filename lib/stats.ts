@@ -49,7 +49,7 @@ export async function getStats(): Promise<StatsResponse> {
     trending: profilesCount + boostsCount + geoCount,
     profiles: profilesCount,
     boosts: boostsCount,
-    dexes: ["DexScreener", "Birdeye", "GeckoTerminal", "CoinGecko", "CoinMarketCap"],
+    dexes: ["DexScreener", "Birdeye", "GeckoTerminal", "CoinGecko", "CoinMarketCap", "DefiLlama"],
     keyMetrics: {
       totalLiquidityUsd: totalLiquidityUsd || undefined,
       totalVolume24hUsd: totalVolume24hUsd || undefined,

@@ -972,3 +972,257 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── DefiLlama Overview ─────────────────────────────── */
+.defillama-overview {
+  background: var(--card-bg, #1a1a2e);
+  border: 1px solid var(--border, #2a2a4a);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 12px 0;
+  transition: all 0.2s ease;
+}
+
+.defillama-overview:hover {
+  border-color: #6366f1;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.08);
+}
+
+.dl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.dl-title {
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.dl-subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted, #9ca3af);
+  margin-left: 4px;
+}
+
+.dl-refresh {
+  background: none;
+  border: 1px solid var(--border, #2a2a4a);
+  color: var(--text, #ccc);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.dl-refresh:hover {
+  background: var(--border, #2a2a4a);
+  color: #6366f1;
+  transform: rotate(180deg);
+}
+
+.dl-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.dl-metric-card {
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.dl-metric-card:hover {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: #6366f1;
+  transform: translateY(-1px);
+}
+
+.dl-metric-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted, #9ca3af);
+}
+
+.dl-metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text, #e5e7eb);
+}
+
+.dl-metric-change {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dl-protocols {
+  margin-top: 4px;
+}
+
+.dl-protocols-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, #9ca3af);
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.dl-protocol-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dl-protocol-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.15s;
+  cursor: default;
+}
+
+.dl-protocol-item:hover {
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.dl-protocol-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dl-protocol-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dl-protocol-logo-fallback {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+}
+
+.dl-protocol-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.dl-protocol-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text, #e5e7eb);
+}
+
+.dl-protocol-category {
+  font-size: 11px;
+  color: var(--text-muted, #9ca3af);
+}
+
+.dl-protocol-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.dl-protocol-volume {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #e5e7eb);
+}
+
+.dl-protocol-change {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dl-footer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #2a2a4a);
+  text-align: center;
+}
+
+.dl-footer-link {
+  font-size: 12px;
+  color: #6366f1;
+  text-decoration: none;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.dl-footer-link:hover {
+  opacity: 1;
+}
+
+.dl-error {
+  color: #ef4444;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.dl-metrics-skeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.skeleton-metric {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-line.w-24 { width: 96px; }
+.skeleton-line.w-16 { width: 64px; }
+.skeleton-line.h-5 { height: 20px; }
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

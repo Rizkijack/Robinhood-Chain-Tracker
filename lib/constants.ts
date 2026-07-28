@@ -12,6 +12,8 @@ export const DEXSCREENER_BASE = "https://api.dexscreener.com";
 export const GECKOTERMINAL_BASE = "https://api.geckoterminal.com/api/v2";
 export const COINGECKO_BASE = "https://api.coingecko.com/api/v3";
 export const COINMARKETCAP_BASE = "https://pro-api.coinmarketcap.com/v1";
+export const DEFILLAMA_COINS_BASE = "https://coins.llama.fi";
+export const DEFILLAMA_API_BASE = "https://api.llama.fi";
 
 export const EXTERNAL_LINKS = {
   dexscreenerNew: "https://dexscreener.com/new-pairs/robinhood",
@@ -100,6 +102,7 @@ export const SOURCE_TIMING: Record<string, SourceTiming> = {
   coingecko: { cacheTtlMs: 60_000, refreshMs: 60_000 },
   coinmarketcap: { cacheTtlMs: 300_000, refreshMs: 300_000, requiresApiKey: true, apiKeyEnv: "COINMARKETCAP_API_KEY" },
   arkham: { cacheTtlMs: 8_000, refreshMs: 5_000, requiresApiKey: true, apiKeyEnv: "ARKHAM_API_KEY" },
+  defillama: { cacheTtlMs: 20_000, refreshMs: 15_000 },
 };
 
 /** Sources that are currently usable given the environment (API keys, etc.). */

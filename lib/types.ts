@@ -5,7 +5,8 @@ export type TrackSource =
   | "birdeye"
   | "geckoterminal"
   | "coingecko"
-  | "coinmarketcap";
+  | "coinmarketcap"
+  | "defillama";
 
 export interface TrackedPair {
   id: string;
@@ -46,6 +47,7 @@ export interface TrackedPair {
     geckoterminal?: string;
     coingecko?: string;
     coinmarketcap?: string;
+    defillama?: string;
   };
   description?: string | null;
   socials?: { type: string; url: string }[];

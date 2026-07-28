@@ -19,6 +19,7 @@ import {
 } from "./sources/geckoterminal";
 import { enrichRobinhoodWithCoinGecko } from "./sources/coingecko";
 import { enrichRobinhoodWithCoinMarketCap } from "./sources/coinmarketcap";
+import { enrichRobinhoodWithDefiLlama } from "./sources/defillama";
 import { mergeLists, mergePair } from "./merge";
 
 const RECOMMENDED_REFRESH = recommendedClientRefreshMs();
@@ -96,12 +97,18 @@ export async function getNewPairsFeed(): Promise<FeedResponse> {
   let pairs = mergeLists(profiles, boosts, beNew, geoNew);
   pairs = sortByNewest(pairs);
 
-  // Best-effort real-time price/market-cap enrichment from CoinGecko.
+  // Best-effort real-time price/market-cap enrichment from global aggregators.
   try {
     pairs = await enrichRobinhoodWithCoinGecko(pairs);
   } catch (e) {
     logError("coingecko-enrich", e);
     errors.push({ source: "coingecko-enrich", message: String(e) });
+  }
+  try {
+    pairs = await enrichRobinhoodWithDefiLlama(pairs);
+  } catch (e) {
+    logError("defillama-enrich", e);
+    errors.push({ source: "defillama-enrich", message: String(e) });
   }
 
   return {
@@ -199,6 +206,12 @@ export async function getTrendingFeed(): Promise<FeedResponse> {
     logError("coinmarketcap-enrich", e);
     errors.push({ source: "coinmarketcap-enrich", message: String(e) });
   }
+  try {
+    merged = await enrichRobinhoodWithDefiLlama(merged);
+  } catch (e) {
+    logError("defillama-enrich", e);
+    errors.push({ source: "defillama-enrich", message: String(e) });
+  }
 
   merged = sortByVolume(merged);
 
@@ -216,6 +229,7 @@ export async function getTrendingFeed(): Promise<FeedResponse> {
       "GeckoTerminal trending pools",
       "CoinGecko price enrichment (Robinhood tokens)",
       "CoinMarketCap price enrichment (Robinhood tokens)",
+      "DefiLlama price enrichment (Robinhood tokens)",
     ],
     count: merged.length,
     pairs: merged,

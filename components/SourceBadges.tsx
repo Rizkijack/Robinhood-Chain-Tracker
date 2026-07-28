@@ -8,6 +8,7 @@ const LABELS: Record<TrackSource, { label: string; className: string }> = {
   geckoterminal: { label: "Geo", className: "badge-gecko" },
   coingecko: { label: "CG", className: "badge-cg" },
   coinmarketcap: { label: "CMC", className: "badge-cmc" },
+  defillama: { label: "Llama", className: "badge-llama" },
 };
 
 export function SourceBadges({ sources }: { sources: TrackSource[] }) {
@@ -19,6 +20,7 @@ export function SourceBadges({ sources }: { sources: TrackSource[] }) {
     "geckoterminal",
     "coingecko",
     "coinmarketcap",
+    "defillama",
   ];
   const set = new Set(sources);
   return (

@@ -23,6 +23,7 @@ import { useWatchlist } from "./Watchlist";
 import { WhaleAlertPanel } from "./WhaleAlertPanel";
 import { EntityHeatmap } from "./EntityHeatmap";
 import { SocialSentiment } from "./SocialSentiment";
+import { DefiLlamaOverview } from "./DefiLlamaOverview";
 import { AdvancedFilters, applyAdvancedFilters, DEFAULT_FILTER } from "./AdvancedFilters";
 import type { AdvancedFilter } from "./AdvancedFilters";
 
@@ -286,6 +287,13 @@ export function TrackerApp() {
             />
           )}
         </ErrorBoundary>
+
+        {/* DefiLlama Overview */}
+        {isDataTab && (
+          <ErrorBoundary>
+            <DefiLlamaOverview />
+          </ErrorBoundary>
+        )}
 
         {/* Bottom panels: Entity Heatmap + Social Sentiment */}
         {isDataTab && (
