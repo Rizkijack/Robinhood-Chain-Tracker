@@ -20,36 +20,19 @@
  */
 
 import { Redis } from "@upstash/redis";
+import { getRedis, _resetRedisClient as _resetRedis } from "./redis-client";
 import type { IRateLimiter, RateLimiterOptions, RateLimitResult } from "./rate-limit";
 
 // ─── Key prefix to avoid collisions if the Upstash DB is shared ────────────
 const PREFIX = "rl:rh:";
 
-// ─── Redis client (lazy singleton) ─────────────────────────────────────────
-let _redis: Redis | null | undefined;
-
-function getRedis(): Redis | null {
-  if (_redis !== undefined) return _redis;
-
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  if (url && token) {
-    _redis = new Redis({ url, token });
-  } else {
-    _redis = null;
-  }
-
-  return _redis;
-}
-
 // ─── In-memory fallback (dev mode) ─────────────────────────────────────────
 type Entry = { expires: number };
 const memStore = new Map<string, Entry & { count: number }>();
 
-/** Reset the Redis client singleton (test helper). */
+/** Reset the Redis client singleton + in-memory store (test helper). */
 export function _resetRedisClient(): void {
-  _redis = undefined;
+  _resetRedis();
   memStore.clear();
 }
 

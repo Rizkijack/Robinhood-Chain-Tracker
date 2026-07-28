@@ -16,28 +16,10 @@
  * works without any external dependency.
  */
 
-import { Redis } from "@upstash/redis";
+import { getRedis } from "./redis-client";
 
 // ─── Key prefix to avoid collisions if the Upstash DB is shared ────────────
 const PREFIX = "rh:";
-
-// ─── Redis client (lazy singleton, null when env vars are missing) ──────────
-let _redis: Redis | null | undefined; // undefined = not yet initialized
-
-function getRedis(): Redis | null {
-  if (_redis !== undefined) return _redis;
-
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  if (url && token) {
-    _redis = new Redis({ url, token });
-  } else {
-    _redis = null;
-  }
-
-  return _redis;
-}
 
 // ─── In-memory fallback (original behaviour) ────────────────────────────────
 type Entry<T> = { expires: number; value: T };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { WhaleTransaction } from "@/hooks/useWhaleAlerts";
+import type { WhaleTransaction } from "@/lib/types";
 import { formatUsd, formatAge, shortAddr } from "@/lib/format";
 
 interface WhaleAlertPanelProps {

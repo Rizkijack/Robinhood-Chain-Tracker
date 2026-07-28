@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { isAddress, type Address } from "viem";
 import { ERC20_ABI } from "@/lib/contracts/abi";
 import { readContractSafe } from "@/lib/rpc";
+import { strictLimiter } from "@/lib/rate-limit";
+import { withRateLimit } from "@/lib/with-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +16,7 @@ export const dynamic = "force-dynamic";
  * Robinhood Chain with graceful degradation — each field is fetched
  * independently so one failing call doesn't void the others.
  */
-export async function POST(req: Request) {
+export const POST = withRateLimit(strictLimiter, async (req: NextRequest) => {
   try {
     const body = await req.json().catch(() => null);
     const address = body?.address;
@@ -68,4 +70,4 @@ export async function POST(req: Request) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
-}
+});

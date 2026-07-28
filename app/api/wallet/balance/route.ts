@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { formatUnits, isAddress, type Address } from "viem";
 import { getNativeBalance } from "@/lib/rpc";
+import { strictLimiter } from "@/lib/rate-limit";
+import { withRateLimit } from "@/lib/with-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +15,7 @@ export const dynamic = "force-dynamic";
  * address. Goes through lib/rpc so we automatically fall back across
  * multiple RPC endpoints and cache the result for ~2.5s.
  */
-export async function POST(req: Request) {
+export const POST = withRateLimit(strictLimiter, async (req: NextRequest) => {
   try {
     const body = await req.json().catch(() => null);
     const address = body?.address;
@@ -34,4 +36,4 @@ export async function POST(req: Request) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
-}
+});

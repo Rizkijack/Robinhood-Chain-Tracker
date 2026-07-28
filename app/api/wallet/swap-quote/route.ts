@@ -1,9 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { isAddress, type Address } from "viem";
 import { UNISWAP_V2_ROUTER_ABI } from "@/lib/contracts/abi";
 import { ROBINHOOD_ADDRESSES, WETH_BY_CHAIN } from "@/lib/contracts/addresses";
 import { CHAIN } from "@/lib/constants";
 import { readContractSafe } from "@/lib/rpc";
+import { strictLimiter } from "@/lib/rate-limit";
+import { withRateLimit } from "@/lib/with-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +17,7 @@ export const dynamic = "force-dynamic";
  * Returns the expected output amount for a Uniswap V2 swap on Robinhood
  * Chain. Routes through lib/rpc for fallback + caching.
  */
-export async function POST(req: Request) {
+export const POST = withRateLimit(strictLimiter, async (req: NextRequest) => {
   try {
     const body = await req.json().catch(() => null);
     const { tokenIn, tokenOut, amountIn } = body ?? {};
@@ -84,4 +86,4 @@ export async function POST(req: Request) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
-}
+});

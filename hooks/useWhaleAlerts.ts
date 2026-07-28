@@ -1,20 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-
-export interface WhaleTransaction {
-  hash: string;
-  type: string;
-  trader: string;
-  tokenSymbol: string;
-  tokenAddress: string;
-  usdValue: number;
-  tokenAmount: number;
-  timestamp: number;
-  entity: string | null;
-  entityLogo: string | null;
-  chain: string;
-}
+import type { WhaleTransaction } from "@/lib/types";
 
 interface UseWhaleAlertsReturn {
   whales: WhaleTransaction[];

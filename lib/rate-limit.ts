@@ -12,6 +12,15 @@
  * `lib/with-rate-limit.ts` works the same regardless of backend.
  */
 
+import {
+  API_RATE_LIMIT_MAX,
+  STRICT_RATE_LIMIT_MAX,
+  WHALE_RATE_LIMIT_MAX,
+  RATE_LIMIT_WINDOW_MS,
+  RATE_LIMIT_PRUNE_INTERVAL_MS,
+} from "./constants";
+import { RedisRateLimiter } from "./redis-rate-limit";
+
 // ── Shared types ──────────────────────────────────────────────────
 
 export interface RateLimiterOptions {
@@ -106,9 +115,6 @@ export class RateLimiter implements IRateLimiter {
     }
   }
 }
-
-import { API_RATE_LIMIT_MAX, STRICT_RATE_LIMIT_MAX, WHALE_RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_PRUNE_INTERVAL_MS } from "./constants";
-import { RedisRateLimiter } from "./redis-rate-limit";
 
 // ── Auto-select Redis vs in-memory ─────────────────────────────────
 
