@@ -1,4 +1,4 @@
-import { CHAIN, GECKOTERMINAL_BASE, SOURCE_TIMING } from "../constants";
+import { CHAIN, GECKOTERMINAL_BASE, SOURCE_TIMING, WHALE_THRESHOLD_USD, MEGA_WHALE_THRESHOLD_USD, TX_CACHE_TTL_MS, GECKO_TX_CACHE_TTL_MS, DEX_TX_CACHE_TTL_MS } from "../constants";
 import { cached } from "../cache";
 import { fetchJsonCached, parseMaybeNumber, collectSocialLinks } from "./shared";
 import { num } from "../format";
@@ -571,8 +571,8 @@ function normalizeGeoTransaction(tx: any): any | null {
       gasFee,
       dexName,
       blockNumber,
-      isWhale: usdValue >= 10000,
-      isMegaWhale: usdValue >= 50000,
+      isWhale: usdValue >= WHALE_THRESHOLD_USD,
+      isMegaWhale: usdValue >= MEGA_WHALE_THRESHOLD_USD,
     };
   } catch {
     return null;
@@ -592,7 +592,7 @@ export async function fetchTokenTransactions(
 ): Promise<{ transactions: any[] }> {
   const addr = address.toLowerCase();
 
-  return cached(`geo:transactions:${addr}:${poolAddress || "auto"}:${page}`, 5000, async () => {
+  return cached(`geo:transactions:${addr}:${poolAddress || "auto"}:${page}`, GECKO_TX_CACHE_TTL_MS, async () => {
     try {
       // Resolve pool address if not provided
       let pool = poolAddress?.toLowerCase();
@@ -655,7 +655,7 @@ export async function fetchBlockscoutTransactions(
 ): Promise<{ transactions: any[] }> {
   const addr = tokenAddress.toLowerCase();
 
-  return cached(`blockscout:txns:${addr}:${pairAddress || "auto"}`, 5000, async () => {
+  return cached(`blockscout:txns:${addr}:${pairAddress || "auto"}`, TX_CACHE_TTL_MS, async () => {
     try {
       const url =
         `https://robinhoodchain.blockscout.com/api` +
@@ -721,8 +721,8 @@ export async function fetchBlockscoutTransactions(
             gasFee,
             dexName: "Uniswap",
             blockNumber: tx.blockNumber,
-            isWhale: usdValue >= 10000,
-            isMegaWhale: usdValue >= 50000,
+            isWhale: usdValue >= WHALE_THRESHOLD_USD,
+            isMegaWhale: usdValue >= MEGA_WHALE_THRESHOLD_USD,
           };
         })
         .filter(Boolean);
@@ -748,7 +748,7 @@ export async function fetchDexScreenerTransactions(
 ): Promise<{ transactions: any[] }> {
   const addr = address.toLowerCase();
 
-  return cached(`dex:transactions:${addr}:${pairAddress || "auto"}`, 3000, async () => {
+  return cached(`dex:transactions:${addr}:${pairAddress || "auto"}`, DEX_TX_CACHE_TTL_MS, async () => {
     try {
       let pairs: any[] = [];
 
@@ -798,8 +798,8 @@ export async function fetchDexScreenerTransactions(
               usdValue: parseFloat(swap.valueUSD || swap.usd || "0"),
               timestamp: swap.timestamp ? new Date(swap.timestamp).getTime() : Date.now(),
               dexName: pair.dexId || "Unknown",
-              isWhale: parseFloat(swap.valueUSD || swap.usd || "0") >= 10000,
-              isMegaWhale: parseFloat(swap.valueUSD || swap.usd || "0") >= 50000,
+              isWhale: parseFloat(swap.valueUSD || swap.usd || "0") >= WHALE_THRESHOLD_USD,
+              isMegaWhale: parseFloat(swap.valueUSD || swap.usd || "0") >= MEGA_WHALE_THRESHOLD_USD,
             });
           }
         }

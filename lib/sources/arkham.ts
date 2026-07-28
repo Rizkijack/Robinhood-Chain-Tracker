@@ -16,14 +16,11 @@
 
 import { cached } from "../cache";
 import type { TokenTransaction } from "../types";
+import { WHALE_THRESHOLD_USD, MEGA_WHALE_THRESHOLD_USD } from "../constants";
 
 const ARKHAM_BASE = "https://api.arkm.com";
 const CACHE_TTL_MS = 8_000; // 8s cache (within 1 req/sec rate limit)
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-
-/** USD thresholds for whale tiers. */
-const WHALE_THRESHOLD = 10_000;
-const MEGA_WHALE_THRESHOLD = 50_000;
 
 /** Chain identifier for Robinhood Chain on Arkham. */
 const ARKHAM_CHAIN = "robinhood";
@@ -234,8 +231,8 @@ function normalizeArkhamTransfer(
       gasFee: gasFee && Number.isFinite(gasFee) ? gasFee : undefined,
       dexName: kind === "buy" || kind === "sell" ? "Uniswap" : undefined,
       blockNumber: raw.blockNumber ? String(raw.blockNumber) : undefined,
-      isWhale: usdValue >= WHALE_THRESHOLD,
-      isMegaWhale: usdValue >= MEGA_WHALE_THRESHOLD,
+      isWhale: usdValue >= WHALE_THRESHOLD_USD,
+      isMegaWhale: usdValue >= MEGA_WHALE_THRESHOLD_USD,
       entity,
       entityLogo,
     };
@@ -361,7 +358,7 @@ export async function fetchArkhamWhaleTransfers(
   options: { limit?: number; minValueUsd?: number } = {}
 ): Promise<TokenTransaction[]> {
   const limit = Math.max(1, Math.min(options.limit ?? 200, 200));
-  const minUsd = options.minValueUsd ?? WHALE_THRESHOLD;
+  const minUsd = options.minValueUsd ?? WHALE_THRESHOLD_USD;
   const apiKey = process.env.ARKHAM_API_KEY;
   if (!apiKey) throw new Error("ARKHAM_API_KEY not configured");
 

@@ -18,21 +18,15 @@
  * `TokenTransaction` shape ready for the UI.
  */
 
-import { CHAIN } from "../constants";
+import { CHAIN, WHALE_THRESHOLD_USD, MEGA_WHALE_THRESHOLD_USD, TX_CACHE_TTL_MS } from "../constants";
 import { cached } from "../cache";
 import type { TokenTransaction } from "../types";
 
 export const BLOCKSCOUT_BASE = CHAIN.explorer;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-/** USD thresholds for whale tiers. */
-const WHALE_THRESHOLD = 10_000;
-const MEGA_WHALE_THRESHOLD = 50_000;
-
 /** How many transfers to pull per page. */
 const PAGE_SIZE = 50;
-/** Short server-side cache. Reduced for real-time transaction streaming. */
-const CACHE_TTL_MS = 3_000;
 
 export interface BlockscoutV1Transfer {
   blockNumber: string;
@@ -93,7 +87,7 @@ export async function fetchBlockscoutTokenTransfers(
   const price = options.tokenPriceUsd;
 
   const cacheKey = `blockscout:txns:v2:${addr}:${pair || "all"}:${pages}`;
-  return cached(cacheKey, CACHE_TTL_MS, async () => {
+  return cached(cacheKey, TX_CACHE_TTL_MS, async () => {
     const all: BlockscoutV1Transfer[] = [];
     for (let page = 1; page <= pages; page++) {
       const url =
@@ -212,8 +206,8 @@ function normalizeTransfer(
       gasFee: Number.isFinite(gasFeeEth) ? gasFeeEth : undefined,
       dexName,
       blockNumber: raw.blockNumber,
-      isWhale: usdValue >= WHALE_THRESHOLD,
-      isMegaWhale: usdValue >= MEGA_WHALE_THRESHOLD,
+      isWhale: usdValue >= WHALE_THRESHOLD_USD,
+      isMegaWhale: usdValue >= MEGA_WHALE_THRESHOLD_USD,
     };
   } catch {
     return null;

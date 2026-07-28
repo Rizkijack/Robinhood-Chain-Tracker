@@ -4,6 +4,7 @@ import { addressParam } from "@/lib/validation/schemas";
 import { validateRequest } from "@/lib/validation/helpers";
 import { strictLimiter } from "@/lib/rate-limit";
 import { withRateLimit } from "@/lib/with-rate-limit";
+import { SECURITY_REQUEST_TIMEOUT_MS, OWNER_BALANCE_THRESHOLD } from "@/lib/constants";
 import type { TokenSecurity } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +65,7 @@ function computeRiskScore(raw: GoPlusResult): number {
 
   // Owner has large balance
   const ownerBal = parseNum(raw.owner_balance);
-  if (ownerBal > 10_000_000) score += 5;
+  if (ownerBal > OWNER_BALANCE_THRESHOLD) score += 5;
 
   return Math.min(score, 100);
 }
@@ -131,7 +132,7 @@ export const GET = withRateLimit(strictLimiter, async (
   try {
     const res = await fetch(
       `${GOPLUS_URL}/4663?contract_addresses=${parsed.data.address}`,
-      { signal: AbortSignal.timeout(8000) }
+      { signal: AbortSignal.timeout(SECURITY_REQUEST_TIMEOUT_MS) }
     );
 
     if (!res.ok) {

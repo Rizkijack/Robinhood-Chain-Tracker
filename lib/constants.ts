@@ -36,6 +36,48 @@ export const USER_AGENT = "RobinhoodPairTracker/1.0 (+local; research)";
  *  Used as the default when a source does not define its own timing. */
 export const CACHE_TTL_MS = 20_000;
 
+// ── Whale / Transaction Thresholds ────────────────────────────────
+
+/** Minimum USD value to classify a transaction as "whale" */
+export const WHALE_THRESHOLD_USD = 10_000;
+
+/** Minimum USD value to classify a transaction as "mega whale" */
+export const MEGA_WHALE_THRESHOLD_USD = 50_000;
+
+/** Server-side cache TTL for transaction data (Arkham / Blockscout). */
+export const TX_CACHE_TTL_MS = 3_000;
+
+/** Server-side cache TTL for GeckoTerminal transaction lookups. */
+export const GECKO_TX_CACHE_TTL_MS = 5_000;
+
+/** Server-side cache TTL for DexScreener transaction lookups. */
+export const DEX_TX_CACHE_TTL_MS = 3_000;
+
+// ── Security / Risk ───────────────────────────────────────────────
+
+/** Request timeout for external security APIs (GoPlus, etc). */
+export const SECURITY_REQUEST_TIMEOUT_MS = 8_000;
+
+/** Owner balance threshold for risk scoring (tokens). */
+export const OWNER_BALANCE_THRESHOLD = 10_000_000;
+
+// ── Rate Limiting (in-memory default thresholds) ──────────────────
+
+/** Default API rate limiter: requests per window. */
+export const API_RATE_LIMIT_MAX = 60;
+
+/** Stricter rate limiter for search & token detail. */
+export const STRICT_RATE_LIMIT_MAX = 30;
+
+/** Whale alerts rate limiter (heavy Arkham endpoint). */
+export const WHALE_RATE_LIMIT_MAX = 10;
+
+/** Sliding window duration for rate limiters (ms). */
+export const RATE_LIMIT_WINDOW_MS = 60_000;
+
+/** Rate limiter prune interval (ms). */
+export const RATE_LIMIT_PRUNE_INTERVAL_MS = 300_000;
+
 /** Auto-refresh interval for the pair feed (fallback if no per-source timing applies). */
 export const REFRESH_MS = 25_000;
 

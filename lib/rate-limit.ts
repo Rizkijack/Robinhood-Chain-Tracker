@@ -95,22 +95,24 @@ export class RateLimiter {
   }
 }
 
+import { API_RATE_LIMIT_MAX, STRICT_RATE_LIMIT_MAX, WHALE_RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_PRUNE_INTERVAL_MS } from "./constants";
+
 /** Default API rate limiter: 60 requests per minute per IP+endpoint. */
 export const apiLimiter = new RateLimiter({
-  maxRequests: 60,
-  windowMs: 60_000,
+  maxRequests: API_RATE_LIMIT_MAX,
+  windowMs: RATE_LIMIT_WINDOW_MS,
 });
 
 /** Stricter limiter for search & token detail (30 req/min). */
 export const strictLimiter = new RateLimiter({
-  maxRequests: 30,
-  windowMs: 60_000,
+  maxRequests: STRICT_RATE_LIMIT_MAX,
+  windowMs: RATE_LIMIT_WINDOW_MS,
 });
 
 /** Whale alerts limiter — 10 req/min (heavy Arkham endpoint). */
 export const whaleLimiter = new RateLimiter({
-  maxRequests: 10,
-  windowMs: 60_000,
+  maxRequests: WHALE_RATE_LIMIT_MAX,
+  windowMs: RATE_LIMIT_WINDOW_MS,
 });
 
 /**
@@ -124,7 +126,7 @@ if (typeof setInterval !== "undefined") {
   const pruneTimer = setInterval(() => {
     apiLimiter.prune();
     strictLimiter.prune();
-  }, 300_000);
+  }, RATE_LIMIT_PRUNE_INTERVAL_MS);
 
   // Do not keep build workers or serverless instances alive solely for cleanup.
   if (typeof pruneTimer === "object" && "unref" in pruneTimer) {
