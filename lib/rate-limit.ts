@@ -1,24 +1,27 @@
 /**
- * Lightweight in-memory sliding window rate limiter.
- * No external dependencies — runs entirely in-process.
+ * Rate limiting — in-memory sliding window (development / fallback).
  *
- * Each unique key (e.g. IP + endpoint) gets a sliding window of
- * `maxRequests` per `windowMs`. Old entries are lazily evicted.
+ * In production (Vercel serverless), the in-memory `RateLimiter` is ineffective
+ * because each instance has its own isolated memory. Instead, we use
+ * `lib/redis-rate-limit.ts` which shares state across all instances via
+ * Upstash Redis. If UPSTASH_REDIS_REST_URL/TOKEN are set, the exported
+ * limiters use Redis. Otherwise they fall back to the in-memory `RateLimiter`
+ * so local development works without external dependencies.
  *
- * Usage:
- *   const limiter = new RateLimiter({ maxRequests: 60, windowMs: 60_000 });
- *   const result = limiter.check("127.0.0.1:/api/pairs/new");
- *   if (!result.allowed) return new Response("Too many", { status: 429 });
+ * Both implementations implement the `IRateLimiter` interface so
+ * `lib/with-rate-limit.ts` works the same regardless of backend.
  */
 
-interface RateLimiterOptions {
+// ── Shared types ──────────────────────────────────────────────────
+
+export interface RateLimiterOptions {
   /** Max number of requests allowed within the window. */
   maxRequests: number;
   /** Window duration in milliseconds. */
   windowMs: number;
 }
 
-interface RateLimitResult {
+export interface RateLimitResult {
   allowed: boolean;
   /** Remaining requests in the current window. */
   remaining: number;
@@ -28,7 +31,16 @@ interface RateLimitResult {
   current: number;
 }
 
-export class RateLimiter {
+/** Unified interface — sync (in-memory) or async (Redis). */
+export interface IRateLimiter {
+  readonly max: number;
+  /** May return a Promise when backed by Redis. */
+  check(key: string): RateLimitResult | Promise<RateLimitResult>;
+}
+
+// ── In-memory sliding window (default) ─────────────────────────────
+
+export class RateLimiter implements IRateLimiter {
   private hits = new Map<string, number[]>();
   private readonly _max: number;
   private readonly window: number;
@@ -96,39 +108,45 @@ export class RateLimiter {
 }
 
 import { API_RATE_LIMIT_MAX, STRICT_RATE_LIMIT_MAX, WHALE_RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_PRUNE_INTERVAL_MS } from "./constants";
+import { RedisRateLimiter } from "./redis-rate-limit";
+
+// ── Auto-select Redis vs in-memory ─────────────────────────────────
+
+const opts = (max: number) => ({ maxRequests: max, windowMs: RATE_LIMIT_WINDOW_MS });
+
+const useRedis = RedisRateLimiter.isAvailable();
+
+let _apiLimiter: IRateLimiter;
+let _strictLimiter: IRateLimiter;
+let _whaleLimiter: IRateLimiter;
+
+if (useRedis) {
+  _apiLimiter = new RedisRateLimiter(opts(API_RATE_LIMIT_MAX));
+  _strictLimiter = new RedisRateLimiter(opts(STRICT_RATE_LIMIT_MAX));
+  _whaleLimiter = new RedisRateLimiter(opts(WHALE_RATE_LIMIT_MAX));
+} else {
+  _apiLimiter = new RateLimiter(opts(API_RATE_LIMIT_MAX));
+  _strictLimiter = new RateLimiter(opts(STRICT_RATE_LIMIT_MAX));
+  _whaleLimiter = new RateLimiter(opts(WHALE_RATE_LIMIT_MAX));
+}
 
 /** Default API rate limiter: 60 requests per minute per IP+endpoint. */
-export const apiLimiter = new RateLimiter({
-  maxRequests: API_RATE_LIMIT_MAX,
-  windowMs: RATE_LIMIT_WINDOW_MS,
-});
+export const apiLimiter: IRateLimiter = _apiLimiter;
 
 /** Stricter limiter for search & token detail (30 req/min). */
-export const strictLimiter = new RateLimiter({
-  maxRequests: STRICT_RATE_LIMIT_MAX,
-  windowMs: RATE_LIMIT_WINDOW_MS,
-});
+export const strictLimiter: IRateLimiter = _strictLimiter;
 
 /** Whale alerts limiter — 10 req/min (heavy Arkham endpoint). */
-export const whaleLimiter = new RateLimiter({
-  maxRequests: WHALE_RATE_LIMIT_MAX,
-  windowMs: RATE_LIMIT_WINDOW_MS,
-});
+export const whaleLimiter: IRateLimiter = _whaleLimiter;
 
-/**
- * Prune stale entries every 5 minutes for housekeeping.
- * ⚠️ Only runs while the Node.js process is alive (local dev).
- * On Vercel serverless, each function instance is short-lived so the
- * in-memory Map is ephemeral anyway — memory leakage is not a concern.
- * For production multi-instance rate limiting, use Upstash Redis + @upstash/ratelimit.
- */
-if (typeof setInterval !== "undefined") {
+// In-memory pruner (only active when not using Redis — serverless instances
+// are too short-lived for memory to leak, but local dev needs it).
+if (typeof setInterval !== "undefined" && !useRedis) {
   const pruneTimer = setInterval(() => {
-    apiLimiter.prune();
-    strictLimiter.prune();
+    (_apiLimiter as RateLimiter).prune();
+    (_strictLimiter as RateLimiter).prune();
   }, RATE_LIMIT_PRUNE_INTERVAL_MS);
 
-  // Do not keep build workers or serverless instances alive solely for cleanup.
   if (typeof pruneTimer === "object" && "unref" in pruneTimer) {
     pruneTimer.unref();
   }

@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import type { RateLimiter } from "./rate-limit";
+import type { IRateLimiter } from "./rate-limit";
 
 type RouteHandler = (
   req: NextRequest,
@@ -33,19 +33,20 @@ function rateLimitKey(req: NextRequest): string {
 
 /**
  * Wraps a route handler with the given rate limiter.
+ * Supports both sync (`RateLimiter`) and async (`RedisRateLimiter`) check().
  * Returns 429 with Retry-After header when the limit is exceeded.
  */
 export function withRateLimit(
-  limiter: RateLimiter,
+  limiter: IRateLimiter,
   handler: RouteHandler
 ): RouteHandler {
   return async (req: NextRequest, context?: { params: Record<string, string> }) => {
     const key = rateLimitKey(req);
-    const result = limiter.check(key);
+    const result = await limiter.check(key);
 
     // Build rate-limit headers
     const headers: Record<string, string> = {
-      "X-RateLimit-Limit": String(limiter["max"]),
+      "X-RateLimit-Limit": String(limiter.max),
       "X-RateLimit-Remaining": String(result.remaining),
       "X-RateLimit-Reset": String(Math.ceil(result.resetInMs / 1000)),
     };
