@@ -6,7 +6,7 @@ import { withRateLimit } from "@/lib/with-rate-limit";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export const GET = withRateLimit(apiLimiter, async (_req: NextRequest) => {
+export const GET = withRateLimit(apiLimiter, async (req: NextRequest) => {
   try {
     const data = await fetchDexOverview();
     if (!data) {

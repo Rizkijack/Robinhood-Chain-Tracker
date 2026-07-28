@@ -134,25 +134,6 @@ export async function enrichRobinhoodWithDefiLlama(
   }
 }
 
-/**
- * Fetch enriched price data for a batch of token addresses.
- * Returns a Map of address → { price, symbol } for use in frontend.
- */
-export async function fetchDefiLlamaBatchPrices(
-  addresses: string[]
-): Promise<Map<string, { price: number; symbol: string; decimals: number }>> {
-  const priceMap = await fetchDefiLlamaPrices(addresses);
-  const result = new Map<string, { price: number; symbol: string; decimals: number }>();
-  for (const [addr, entry] of priceMap) {
-    result.set(addr, {
-      price: entry.price,
-      symbol: entry.symbol,
-      decimals: entry.decimals,
-    });
-  }
-  return result;
-}
-
 // ── DEX Overview ──────────────────────────────────────────────────
 
 export interface DexVolumeData {
@@ -211,12 +192,4 @@ export async function fetchDexOverview(): Promise<DexVolumeData | null> {
   });
 }
 
-/**
- * Fetch the list of all DEX protocols active on Robinhood Chain.
- * Useful for the stats page to list available DEXes.
- */
-export async function fetchActiveDexes(): Promise<string[]> {
-  const data = await fetchDexOverview();
-  if (!data) return [];
-  return data.protocols.map((p) => p.displayName || p.name);
-}
+

@@ -12,8 +12,6 @@ export const DEXSCREENER_BASE = "https://api.dexscreener.com";
 export const GECKOTERMINAL_BASE = "https://api.geckoterminal.com/api/v2";
 export const COINGECKO_BASE = "https://api.coingecko.com/api/v3";
 export const COINMARKETCAP_BASE = "https://pro-api.coinmarketcap.com/v1";
-export const DEFILLAMA_COINS_BASE = "https://coins.llama.fi";
-export const DEFILLAMA_API_BASE = "https://api.llama.fi";
 
 export const EXTERNAL_LINKS = {
   dexscreenerNew: "https://dexscreener.com/new-pairs/robinhood",
