@@ -48,6 +48,7 @@ interface ArkhamTransfer {
   valueUsd?: number;
   tokenSymbol?: string;
   token?: {
+    address?: string;
     symbol?: string;
     name?: string;
     decimals?: number;
@@ -217,6 +218,7 @@ function normalizeArkhamTransfer(
     }
 
     const symbol = raw.tokenSymbol || raw.token?.symbol || "TOKEN";
+    const tokenAddr = raw.token?.address?.toLowerCase() || "";
 
     return {
       hash,
@@ -224,6 +226,8 @@ function normalizeArkhamTransfer(
       trader,
       tokenAmount,
       tokenSymbol: symbol,
+      tokenAddress: tokenAddr || undefined,
+      chain: ARKHAM_CHAIN,
       usdValue,
       timestamp: ts,
       gasUsed,

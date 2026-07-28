@@ -197,6 +197,10 @@ export interface TokenTransaction {
   isWhale?: boolean;
   /** Whether this is a mega whale transaction (auto-calculated: usdValue > 50000) */
   isMegaWhale?: boolean;
+  /** Token contract address (optional, populated by Arkham source) */
+  tokenAddress?: string;
+  /** Chain identifier (optional, e.g. "robinhood") */
+  chain?: string;
   /** Entity/label from Arkham Intelligence (optional) */
   entity?: string;
   /** Arkham entity logo URL (optional) */
