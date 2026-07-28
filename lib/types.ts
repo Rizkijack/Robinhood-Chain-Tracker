@@ -214,3 +214,64 @@ export interface TransactionFilter {
   /** Search by wallet address */
   searchQuery: string;
 }
+
+// ── Whale Tracking Types ──────────────────────────────────────────
+
+/** Time-bucketed whale flow data for chart visualization */
+export interface WhaleFlowData {
+  /** Time bucket (unix ms) */
+  timestamp: number;
+  /** Total USD inflow (buys) */
+  inflowUsd: number;
+  /** Total USD outflow (sells) */
+  outflowUsd: number;
+  /** Net flow (inflow - outflow) */
+  netFlowUsd: number;
+  /** Number of whale transactions in bucket */
+  txCount: number;
+  /** Top tokens involved */
+  topTokens: { symbol: string; volumeUsd: number }[];
+}
+
+/** A watched whale wallet */
+export interface WhaleWallet {
+  address: string;
+  label: string;
+  entity: string | null;
+  entityLogo: string | null;
+  totalValueUsd: number;
+  lastActive: number;
+  txCount24h: number;
+  addedAt: number;
+}
+
+/** Configurable whale alert rule */
+export interface WhaleAlertConfig {
+  id: string;
+  enabled: boolean;
+  /** Minimum USD value to trigger */
+  minUsd: number;
+  /** Filter by token address (null = all tokens) */
+  tokenAddress: string | null;
+  /** Filter by entity name (null = all entities) */
+  entityName: string | null;
+  /** Alert type */
+  type: 'buy' | 'sell' | 'transfer' | 'all';
+  /** Notification method */
+  notifyVia: 'toast' | 'browser' | 'both';
+}
+
+/** Whale transaction (same shape as useWhaleAlerts hook) */
+export interface WhaleTransaction {
+  hash: string;
+  type: string;
+  trader: string;
+  tokenSymbol: string;
+  tokenAddress: string;
+  usdValue: number;
+  tokenAmount: number;
+  timestamp: number;
+  entity: string | null;
+  entityLogo: string | null;
+  chain: string;
+}

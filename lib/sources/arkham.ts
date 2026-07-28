@@ -274,6 +274,121 @@ function classifyFromArkham(raw: ArkhamTransfer): TokenTransaction["type"] {
 }
 
 /**
+ * Fetch transfers attributed to a specific Arkham entity.
+ */
+export async function fetchArkhamEntityTransfers(
+  entityName: string,
+  options: { limit?: number } = {}
+): Promise<TokenTransaction[]> {
+  const limit = Math.max(1, Math.min(options.limit ?? 50, 100));
+  const apiKey = process.env.ARKHAM_API_KEY;
+  if (!apiKey) throw new Error("ARKHAM_API_KEY not configured");
+
+  const cacheKey = `arkham:entity:${entityName}:${limit}`;
+  return cached(cacheKey, CACHE_TTL_MS, async () => {
+    const params = new URLSearchParams({
+      chain: ARKHAM_CHAIN,
+      entity: entityName,
+      limit: String(limit),
+      sort: "time",
+      order: "desc",
+    });
+
+    const res = await fetch(`${ARKHAM_BASE}/transfers?${params.toString()}`, {
+      headers: { Accept: "application/json", "API-Key": apiKey },
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Arkham API ${res.status}: ${body.slice(0, 200)}`);
+    }
+
+    const data = (await res.json()) as ArkhamTransfersResponse;
+    return (data.transfers || [])
+      .map((tx) => normalizeArkhamTransfer(tx, { tokenAddress: "" }))
+      .filter((tx): tx is TokenTransaction => tx !== null)
+      .sort((a, b) => b.timestamp - a.timestamp);
+  });
+}
+
+/**
+ * Fetch transfers for a specific wallet address.
+ */
+export async function fetchArkhamWalletTransfers(
+  address: string,
+  options: { limit?: number } = {}
+): Promise<TokenTransaction[]> {
+  const addr = address.toLowerCase();
+  const limit = Math.max(1, Math.min(options.limit ?? 50, 100));
+  const apiKey = process.env.ARKHAM_API_KEY;
+  if (!apiKey) throw new Error("ARKHAM_API_KEY not configured");
+
+  const cacheKey = `arkham:wallet:${addr}:${limit}`;
+  return cached(cacheKey, CACHE_TTL_MS, async () => {
+    const params = new URLSearchParams({
+      chain: ARKHAM_CHAIN,
+      address: addr,
+      limit: String(limit),
+      sort: "time",
+      order: "desc",
+    });
+
+    const res = await fetch(`${ARKHAM_BASE}/transfers?${params.toString()}`, {
+      headers: { Accept: "application/json", "API-Key": apiKey },
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Arkham API ${res.status}: ${body.slice(0, 200)}`);
+    }
+
+    const data = (await res.json()) as ArkhamTransfersResponse;
+    return (data.transfers || [])
+      .map((tx) => normalizeArkhamTransfer(tx, { tokenAddress: "" }))
+      .filter((tx): tx is TokenTransaction => tx !== null)
+      .sort((a, b) => b.timestamp - a.timestamp);
+  });
+}
+
+/**
+ * Fetch all whale transfers (no token filter) for flow analytics.
+ */
+export async function fetchArkhamWhaleTransfers(
+  options: { limit?: number; minValueUsd?: number } = {}
+): Promise<TokenTransaction[]> {
+  const limit = Math.max(1, Math.min(options.limit ?? 200, 200));
+  const minUsd = options.minValueUsd ?? WHALE_THRESHOLD;
+  const apiKey = process.env.ARKHAM_API_KEY;
+  if (!apiKey) throw new Error("ARKHAM_API_KEY not configured");
+
+  const cacheKey = `arkham:whales:${limit}:${minUsd}`;
+  return cached(cacheKey, CACHE_TTL_MS, async () => {
+    const params = new URLSearchParams({
+      chain: ARKHAM_CHAIN,
+      minValueUsd: String(minUsd),
+      limit: String(limit),
+      sort: "time",
+      order: "desc",
+    });
+
+    const res = await fetch(`${ARKHAM_BASE}/transfers?${params.toString()}`, {
+      headers: { Accept: "application/json", "API-Key": apiKey },
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Arkham API ${res.status}: ${body.slice(0, 200)}`);
+    }
+
+    const data = (await res.json()) as ArkhamTransfersResponse;
+    return (data.transfers || [])
+      .map((tx) => normalizeArkhamTransfer(tx, { tokenAddress: "" }))
+      .filter((tx): tx is TokenTransaction => tx !== null)
+      .sort((a, b) => b.timestamp - a.timestamp);
+  });
+}
+
+/**
  * Build the Arkham Intelligence URL for a specific address.
  */
 export function arkhamAddressUrl(address: string): string {

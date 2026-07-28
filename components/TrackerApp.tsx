@@ -26,7 +26,11 @@ import { SocialSentiment } from "./SocialSentiment";
 import { AdvancedFilters, applyAdvancedFilters, DEFAULT_FILTER } from "./AdvancedFilters";
 import type { AdvancedFilter } from "./AdvancedFilters";
 
-// Lazy-load wallet components — only needed when user interacts with wallet
+// Lazy-load heavy components
+const WhaleDashboard = dynamic(
+  () => import("./WhaleDashboard").then((m) => m.WhaleDashboard),
+  { ssr: false }
+);
 const WalletPortfolio = dynamic(
   () => import("./WalletPortfolio").then((m) => m.WalletPortfolio),
   { ssr: false, loading: () => <div className="portfolio-loading">Loading...</div> }
@@ -90,7 +94,7 @@ export function TrackerApp() {
 
   // Load initial data on mount and when tab/query changes
   useEffect(() => {
-    if (tab === "portfolio" || tab === "watchlist") return;
+    if (tab === "portfolio" || tab === "watchlist" || tab === "whales") return;
     loadStats();
     loadFeed(tab, query);
   }, [loadFeed, loadStats, tab, query]);
@@ -99,7 +103,7 @@ export function TrackerApp() {
 
   // Polling for feed data
   useEffect(() => {
-    if (tab === "search" || tab === "portfolio" || tab === "watchlist" || !autoRefresh) return;
+    if (tab === "search" || tab === "portfolio" || tab === "watchlist" || tab === "whales" || !autoRefresh) return;
     const id = setInterval(() => {
       loadFeed(tab, query);
     }, refreshMs);
@@ -108,7 +112,7 @@ export function TrackerApp() {
 
   // Polling for stats
   useEffect(() => {
-    if (!autoRefresh || tab === "search" || tab === "portfolio" || tab === "watchlist") return;
+    if (!autoRefresh || tab === "search" || tab === "portfolio" || tab === "watchlist" || tab === "whales") return;
     const id = setInterval(() => {
       loadStats();
     }, Math.max(refreshMs, 15_000));
@@ -153,7 +157,8 @@ export function TrackerApp() {
   const isSearchTab = tab === "search";
   const isPortfolioTab = tab === "portfolio";
   const isWatchlistTab = tab === "watchlist";
-  const isDataTab = !isSearchTab && !isPortfolioTab && !isWatchlistTab;
+  const isWhaleTab = tab === "whales";
+  const isDataTab = !isSearchTab && !isPortfolioTab && !isWatchlistTab && !isWhaleTab;
 
   const watchlistPairs = useMemo(() => {
     if (!feed?.pairs) return [];
@@ -257,7 +262,9 @@ export function TrackerApp() {
         {error ? <div className="error-box">{error}</div> : null}
 
         <ErrorBoundary>
-          {isPortfolioTab ? (
+          {isWhaleTab ? (
+            <WhaleDashboard />
+          ) : isPortfolioTab ? (
             <WalletPortfolio onTokenSelect={(addr) => setTab("search")} />
           ) : isWatchlistTab ? (
             <WatchlistPanel

@@ -1,0 +1,979 @@
+/* ═══════════════════════════════════════════════════════════════
+   Whale Dashboard — Full whale tracking page styles
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Dashboard Layout ────────────────────────────────────────── */
+.whale-dashboard {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 0.8fr;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+  min-height: 60vh;
+}
+
+@media (max-width: 1024px) {
+  .whale-dashboard {
+    grid-template-columns: 1fr 1fr;
+  }
+  .whale-dashboard-sidebar {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-4);
+  }
+}
+
+@media (max-width: 640px) {
+  .whale-dashboard {
+    grid-template-columns: 1fr;
+  }
+  .whale-dashboard-sidebar {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Whale Feed ──────────────────────────────────────────────── */
+.whale-feed {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+
+.whale-feed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.04), transparent);
+}
+
+.whale-feed-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.whale-feed-count {
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.whale-feed-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.whale-feed-volume {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
+.whale-feed-filters {
+  display: flex;
+  gap: 4px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.whale-filter-chip {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: transparent;
+  transition: background .15s, color .15s;
+}
+
+.whale-filter-chip:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.whale-filter-chip.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.whale-feed-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.whale-usd-tiers {
+  display: flex;
+  gap: 2px;
+}
+
+.whale-tier-btn {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--text-mute);
+  background: transparent;
+  transition: background .15s, color .15s;
+}
+
+.whale-tier-btn:hover { color: var(--text-dim); }
+
+.whale-tier-btn.active {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.whale-sort {
+  display: flex;
+  gap: 2px;
+}
+
+.whale-sort-btn {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--text-mute);
+  background: transparent;
+  transition: background .15s, color .15s;
+}
+
+.whale-sort-btn:hover { color: var(--text-dim); }
+
+.whale-sort-btn.active {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.whale-feed-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.whale-feed-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line-soft);
+  transition: background .15s;
+}
+
+.whale-feed-row:last-child { border-bottom: none; }
+.whale-feed-row:hover { background: var(--bg-hover); }
+
+.whale-feed-row.whale-mega {
+  border-left: 2px solid var(--amber);
+}
+
+.whale-feed-row.whale-ultra {
+  border-left: 2px solid var(--red);
+  background: rgba(239, 68, 68, 0.03);
+}
+
+.whale-feed-row-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.whale-feed-row-info {
+  min-width: 0;
+}
+
+.whale-feed-row-token {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.whale-feed-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.whale-feed-row-right {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.whale-feed-error, .whale-feed-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-mute);
+  font-size: 12px;
+}
+
+.whale-feed-expand {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: var(--accent);
+  font-size: 12px;
+  border-top: 1px solid var(--line-soft);
+  transition: background .15s;
+}
+
+.whale-feed-expand:hover {
+  background: var(--bg-hover);
+}
+
+.whale-badge-mega, .whale-badge-ultra {
+  font-size: 12px;
+}
+
+.entity.clickable, .whale-token-sym {
+  cursor: pointer;
+}
+
+.entity.clickable:hover, .whale-token-sym:hover {
+  color: var(--accent);
+}
+
+/* ── Whale Flow Chart ────────────────────────────────────────── */
+.whale-flow {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+
+.whale-flow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.whale-flow-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.whale-flow-loading, .whale-flow-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-mute);
+  font-size: 12px;
+}
+
+.whale-flow-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.whale-flow-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 8px;
+  background: var(--bg-1);
+}
+
+.whale-flow-stat-label {
+  font-size: 10px;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.whale-flow-stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+
+.whale-flow-stat-value.positive { color: var(--green); }
+.whale-flow-stat-value.negative { color: var(--red); }
+
+.whale-flow-chart {
+  padding: 14px;
+}
+
+.whale-flow-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 120px;
+  padding-bottom: 20px;
+  position: relative;
+}
+
+.whale-flow-bar-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  position: relative;
+}
+
+.whale-flow-bar-pair {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  flex: 1;
+  width: 100%;
+  justify-content: center;
+}
+
+.whale-flow-bar {
+  width: 40%;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  transition: height .3s;
+}
+
+.whale-flow-bar.inflow { background: var(--green); opacity: 0.7; }
+.whale-flow-bar.outflow { background: var(--red); opacity: 0.7; }
+
+.whale-flow-net {
+  font-size: 8px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.whale-flow-net.positive { color: var(--green); }
+.whale-flow-net.negative { color: var(--red); }
+
+.whale-flow-time {
+  font-size: 9px;
+  color: var(--text-mute);
+  position: absolute;
+  bottom: 0;
+}
+
+.whale-flow-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.whale-flow-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.whale-flow-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.whale-flow-legend-dot.inflow { background: var(--green); }
+.whale-flow-legend-dot.outflow { background: var(--red); }
+
+.whale-flow-tokens {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+}
+
+.whale-flow-tokens-label {
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.whale-flow-token-chip {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--bg-2);
+  border-radius: 4px;
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* ── Whale Wallet Tracker ────────────────────────────────────── */
+.whale-wallet-tracker {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+
+.whale-wallet-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.whale-wallet-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.whale-wallet-count {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.whale-wallet-add {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.whale-wallet-input {
+  flex: 1;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--mono);
+}
+
+.whale-wallet-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.whale-wallet-input::placeholder {
+  color: var(--text-mute);
+}
+
+.whale-wallet-add-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.whale-wallet-add-btn:hover { opacity: 0.9; }
+.whale-wallet-add-btn:disabled { opacity: 0.5; }
+
+.whale-wallet-error {
+  padding: 6px 14px;
+  font-size: 11px;
+  color: var(--red);
+}
+
+.whale-wallet-empty {
+  padding: 20px 14px;
+  text-align: center;
+  color: var(--text-mute);
+  font-size: 12px;
+}
+
+.whale-wallet-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.whale-wallet-card {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.whale-wallet-card:last-child { border-bottom: none; }
+
+.whale-wallet-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.whale-wallet-card-header:hover { background: var(--bg-hover); }
+
+.whale-wallet-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.whale-wallet-card-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.whale-wallet-card-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.whale-wallet-addr { font-family: var(--mono); }
+
+.whale-wallet-card-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.whale-wallet-value {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: var(--green);
+}
+
+.whale-wallet-txs {
+  font-size: 10px;
+  color: var(--text-mute);
+}
+
+.whale-wallet-remove {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--text-mute);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, color .15s;
+}
+
+.whale-wallet-remove:hover {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.whale-wallet-detail {
+  padding: 8px 14px 8px 38px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line-soft);
+}
+
+.whale-wallet-loading {
+  padding: 8px 0;
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.whale-wallet-txs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.whale-wallet-tx {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  padding: 4px 0;
+}
+
+.whale-wallet-tx-type {
+  width: 50px;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.whale-wallet-tx-token {
+  flex: 1;
+  font-weight: 600;
+}
+
+.whale-wallet-tx-value {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.whale-wallet-tx-time {
+  color: var(--text-mute);
+  font-size: 10px;
+}
+
+/* ── Whale Entity Profile ────────────────────────────────────── */
+.whale-entity-profile {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  margin-top: var(--sp-4);
+}
+
+.whale-entity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.whale-entity-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.whale-entity-logo {
+  border-radius: 50%;
+  border: 1px solid var(--line);
+}
+
+.whale-entity-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.whale-entity-meta {
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.whale-entity-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 18px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+
+.whale-entity-close:hover {
+  background: var(--bg-hover);
+}
+
+.whale-entity-volumes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.whale-entity-vol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px;
+  background: var(--bg-1);
+}
+
+.whale-entity-vol-label {
+  font-size: 10px;
+  color: var(--text-mute);
+  text-transform: uppercase;
+}
+
+.whale-entity-vol-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+
+.whale-entity-vol-value.positive { color: var(--green); }
+.whale-entity-vol-value.negative { color: var(--red); }
+
+.whale-entity-loading, .whale-entity-error {
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-mute);
+}
+
+.whale-entity-txs {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.whale-entity-tx {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 11px;
+}
+
+.whale-entity-tx:last-child { border-bottom: none; }
+
+.whale-entity-tx-type {
+  width: 20px;
+  text-align: center;
+}
+
+.whale-entity-tx-token { font-weight: 600; cursor: pointer; }
+.whale-entity-tx-token:hover { color: var(--accent); }
+.whale-entity-tx-amount { font-family: var(--mono); }
+.whale-entity-tx-time { color: var(--text-mute); margin-left: auto; }
+
+.whale-entity-link {
+  display: block;
+  padding: 10px 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--accent);
+  border-top: 1px solid var(--line-soft);
+  transition: background .15s;
+}
+
+.whale-entity-link:hover { background: var(--bg-hover); }
+
+/* ── Whale Notification Center ───────────────────────────────── */
+.whale-notif-center {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  margin-top: var(--sp-4);
+}
+
+.whale-notif-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.whale-notif-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.whale-notif-global {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.whale-notif-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.whale-notif-toggle input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+.whale-notif-rules {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.whale-notif-rule {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.whale-notif-rule:last-child { border-bottom: none; }
+.whale-notif-rule.disabled { opacity: 0.6; }
+
+.whale-notif-rule-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+}
+
+.whale-notif-rule-toggle {
+  flex-shrink: 0;
+}
+
+.whale-notif-rule-toggle input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+.whale-notif-rule-label {
+  flex: 1;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.whale-notif-rule-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.whale-notif-rule-expand, .whale-notif-rule-remove {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-mute);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.whale-notif-rule-expand:hover { background: var(--bg-hover); }
+.whale-notif-rule-remove:hover { background: var(--red-soft); color: var(--red); }
+
+.whale-notif-rule-detail {
+  padding: 8px 14px 10px 36px;
+  background: var(--bg-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.whale-notif-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.whale-notif-field label {
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.whale-notif-field select {
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--bg-1);
+  color: var(--text);
+  font-size: 11px;
+}
+
+.whale-notif-add {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--accent);
+  border-top: 1px solid var(--line-soft);
+  transition: background .15s;
+}
+
+.whale-notif-add:hover { background: var(--bg-hover); }
+
+/* ── Shared Whale Styles ─────────────────────────────────────── */
+.whale-type {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.whale-type-buy { background: var(--green-soft); color: var(--green); }
+.whale-type-sell { background: var(--red-soft); color: var(--red); }
+.whale-type-transfer { background: rgba(148, 163, 184, 0.12); color: var(--text-dim); }
+.whale-type-mint { background: var(--accent-soft); color: var(--accent); }
+
+.whale-token-sym {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.whale-token-sym:hover { color: var(--accent); }
+
+.whale-row-amount {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.whale-entity {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-dim);
+}
+
+.whale-entity img {
+  border-radius: 50%;
+}
+
+.whale-trader {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.whale-time {
+  color: var(--text-mute);
+}
+
+.whale-usd {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.whale-refresh {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 16px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, color .15s;
+}
+
+.whale-refresh:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.whale-refresh:disabled { opacity: 0.5; }
