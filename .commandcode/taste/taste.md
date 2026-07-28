@@ -1,3 +1,4 @@
 - Prefers surgical, minimal, scoped edits rather than broad refactoring — when asked to change one thing, explicitly constrains against unrelated changes ("tidak ada perubahan lain"). Confidence: 0.7
 - Communicates in Indonesian (Bahasa Indonesia). All user messages are in Indonesian; assistant responses may be mixed but the user consistently writes in Indonesian. Confidence: 0.85
 - After making code changes, always commit and push to the main/master branch of the GitHub repo. Confidence: 0.95
+- When presented with a list of recommended features, prefers implementing ALL of them at once rather than picking individually — "implementasikan semua fitur". Likes comprehensive, batch implementation. Confidence: 0.8

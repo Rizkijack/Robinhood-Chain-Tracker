@@ -19,8 +19,17 @@ export const GET = withRateLimit(strictLimiter, async (
   });
   if (!parsed.success) return parsed.response;
 
+  // Double-check address is properly sanitized before passing to external API
+  const sanitizedAddress = parsed.data.address.toLowerCase();
+  if (!sanitizedAddress.startsWith("0x") || sanitizedAddress.length !== 42) {
+    return NextResponse.json(
+      { error: "Invalid address format" },
+      { status: 400 }
+    );
+  }
+
   try {
-    const data = await fetchTokenDetail(parsed.data.address);
+    const data = await fetchTokenDetail(sanitizedAddress);
     return NextResponse.json(data, {
       headers: { "Cache-Control": "no-store, max-age=0" },
     });

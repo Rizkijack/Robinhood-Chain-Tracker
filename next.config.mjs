@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Skip Google Fonts download at build time (use fallback / self-host instead)
-  optimizeFonts: false,
   distDir: ".next",
   images: {
     unoptimized: true,
