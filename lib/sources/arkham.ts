@@ -34,23 +34,36 @@ export interface FetchArkhamOptions {
   limit?: number;
 }
 
+interface ArkhamAddressObject {
+  address?: string;
+  arkhamEntity?: { name?: string; logo?: string };
+  arkhamLabel?: { name?: string; logo?: string };
+}
+
+type ArkhamAddressField = string | ArkhamAddressObject | null | undefined;
+
 /** Raw transfer object from Arkham /transfers response. */
 interface ArkhamTransfer {
   transactionHash: string;
-  blockNumber: number;
-  timestamp: string; // ISO-8601
-  fromAddress: string;
-  toAddress: string;
-  value: number; // human-readable token amount
-  valueUsd?: number;
+  blockNumber: number | string;
+  timestamp?: string; // legacy ISO-8601 field
+  blockTimestamp?: string; // current ISO-8601 field
+  fromAddress: ArkhamAddressField;
+  toAddress: ArkhamAddressField;
+  value?: number; // legacy human-readable token amount
+  unitValue?: number; // current human-readable token amount
+  valueUsd?: number; // legacy USD field
+  historicalUSD?: number; // current USD field
   tokenSymbol?: string;
+  tokenAddress?: string | null;
   token?: {
     address?: string;
     symbol?: string;
     name?: string;
     decimals?: number;
   };
-  classification?: string; // "transfer", "swap", etc.
+  classification?: string; // legacy: "transfer", "swap", etc.
+  type?: string; // current classification field
   fromEntity?: {
     name?: string;
     logo?: string;
@@ -136,6 +149,20 @@ interface NormalizeOpts {
   tokenAddress: string;
 }
 
+function extractAddress(value: ArkhamAddressField): string {
+  if (typeof value === "string") return value.toLowerCase();
+  if (value && typeof value.address === "string") return value.address.toLowerCase();
+  return "";
+}
+
+function extractEntity(value: ArkhamAddressField): { name?: string; logo?: string } {
+  if (!value || typeof value === "string") return {};
+  return {
+    name: value.arkhamEntity?.name || value.arkhamLabel?.name,
+    logo: value.arkhamEntity?.logo || value.arkhamLabel?.logo,
+  };
+}
+
 /**
  * Convert a single Arkham transfer into a normalized `TokenTransaction`.
  */
@@ -147,23 +174,32 @@ function normalizeArkhamTransfer(
     const hash = raw.transactionHash?.trim();
     if (!hash) return null;
 
-    // Timestamp: Arkham returns ISO-8601 strings.
-    const ts = new Date(raw.timestamp).getTime();
+    // Arkham returns ISO-8601 in either `timestamp` (legacy) or `blockTimestamp` (current).
+    const ts = new Date(raw.timestamp || raw.blockTimestamp || "").getTime();
     if (!Number.isFinite(ts) || ts <= 0) return null;
 
-    // Token amount: Arkham returns human-readable values.
-    const tokenAmount = Number.isFinite(raw.value) ? Number(raw.value) : 0;
+    // Token amount: support both legacy `value` and current `unitValue`.
+    const tokenAmount =
+      Number.isFinite(raw.value) ? Number(raw.value) :
+      Number.isFinite(raw.unitValue) ? Number(raw.unitValue) :
+      0;
 
-    const from = (raw.fromAddress || "").toLowerCase();
-    const to = (raw.toAddress || "").toLowerCase();
+    const from = extractAddress(raw.fromAddress);
+    const to = extractAddress(raw.toAddress);
 
-    // USD value: prefer Arkham's own computation.
-    let usdValue = Number.isFinite(raw.valueUsd) ? Number(raw.valueUsd) : 0;
+    // USD value: support both legacy `valueUsd` and current `historicalUSD`.
+    let usdValue =
+      Number.isFinite(raw.valueUsd) ? Number(raw.valueUsd) :
+      Number.isFinite(raw.historicalUSD) ? Number(raw.historicalUSD) :
+      0;
 
     // Fallback: compute from amount * caller-provided price.
     if (usdValue <= 0 && opts.price != null && Number.isFinite(opts.price) && tokenAmount > 0) {
       usdValue = tokenAmount * opts.price;
     }
+
+    const fromEntityRef = extractEntity(raw.fromAddress);
+    const toEntityRef = extractEntity(raw.toAddress);
 
     // Classify transaction type.
     let kind: TokenTransaction["type"];
@@ -174,37 +210,37 @@ function normalizeArkhamTransfer(
     if (from === ZERO_ADDRESS) {
       kind = "mint";
       trader = to;
-      entity = raw.toEntity?.name;
-      entityLogo = raw.toEntity?.logo;
+      entity = raw.toEntity?.name || toEntityRef.name;
+      entityLogo = raw.toEntity?.logo || toEntityRef.logo;
     } else if (to === ZERO_ADDRESS) {
       kind = "burn";
       trader = from;
-      entity = raw.fromEntity?.name;
-      entityLogo = raw.fromEntity?.logo;
+      entity = raw.fromEntity?.name || fromEntityRef.name;
+      entityLogo = raw.fromEntity?.logo || fromEntityRef.logo;
     } else if (opts.pair) {
       if (to === opts.pair) {
         // Token going TO pool = user is selling
         kind = "sell";
         trader = from;
-        entity = raw.fromEntity?.name;
-        entityLogo = raw.fromEntity?.logo;
+        entity = raw.fromEntity?.name || fromEntityRef.name;
+        entityLogo = raw.fromEntity?.logo || fromEntityRef.logo;
       } else if (from === opts.pair) {
         // Token coming FROM pool = user is buying
         kind = "buy";
         trader = to;
-        entity = raw.toEntity?.name;
-        entityLogo = raw.toEntity?.logo;
+        entity = raw.toEntity?.name || toEntityRef.name;
+        entityLogo = raw.toEntity?.logo || toEntityRef.logo;
       } else {
         kind = classifyFromArkham(raw);
-        trader = from;
-        entity = raw.fromEntity?.name;
-        entityLogo = raw.fromEntity?.logo;
+        trader = from || to;
+        entity = raw.fromEntity?.name || fromEntityRef.name || raw.toEntity?.name || toEntityRef.name;
+        entityLogo = raw.fromEntity?.logo || fromEntityRef.logo || raw.toEntity?.logo || toEntityRef.logo;
       }
     } else {
       kind = classifyFromArkham(raw);
-      trader = from;
-      entity = raw.fromEntity?.name;
-      entityLogo = raw.fromEntity?.logo;
+      trader = from || to;
+      entity = raw.fromEntity?.name || fromEntityRef.name || raw.toEntity?.name || toEntityRef.name;
+      entityLogo = raw.fromEntity?.logo || fromEntityRef.logo || raw.toEntity?.logo || toEntityRef.logo;
     }
 
     // Gas: Arkham may provide gasUsed and gasPrice directly.
@@ -215,7 +251,7 @@ function normalizeArkhamTransfer(
     }
 
     const symbol = raw.tokenSymbol || raw.token?.symbol || "TOKEN";
-    const tokenAddr = raw.token?.address?.toLowerCase() || "";
+    const tokenAddr = raw.token?.address?.toLowerCase() || raw.tokenAddress?.toLowerCase() || "";
 
     return {
       hash,
@@ -246,7 +282,7 @@ function normalizeArkhamTransfer(
  * Falls back to "transfer" when classification is ambiguous.
  */
 function classifyFromArkham(raw: ArkhamTransfer): TokenTransaction["type"] {
-  const cls = (raw.classification || "").toLowerCase();
+  const cls = (raw.classification || raw.type || "").toLowerCase();
   const method = (raw.method || "").toLowerCase();
 
   // Arkham classifies swaps explicitly.

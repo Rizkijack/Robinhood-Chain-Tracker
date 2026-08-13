@@ -49,6 +49,10 @@
 
   --radius: 12px;
   --radius-sm: 8px;
+  /* ── Fonts (system stack — see layout.tsx; no next/font to keep build offline-safe) ── */
+  --font-inter: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", "SF Mono", Consolas, "Courier New", monospace;
+
   --font: var(--font-inter), "Segoe UI", system-ui, -apple-system, sans-serif;
   --mono: var(--font-mono), "Cascadia Code", "SF Mono", Consolas, "Courier New", monospace;
   --header-h: 56px;

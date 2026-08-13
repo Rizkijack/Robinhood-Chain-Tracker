@@ -231,7 +231,7 @@ export function TrackerApp() {
             <TokenComparison
               tokens={compareTokens}
               onRemove={removeFromCompare}
-              onAdd={() => {}}
+              onAdd={() => setSelected(feed?.pairs[0] ?? null)}
               onClose={() => setShowCompare(false)}
             />
           </ErrorBoundary>

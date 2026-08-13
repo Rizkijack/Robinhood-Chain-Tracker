@@ -18,14 +18,21 @@ type RouteHandler = (
 
 /**
  * Extracts a unique key for rate limiting from the request.
- * Uses CF-Connecting-IP (Cloudflare) → X-Forwarded-For → x-real-ip → fallback.
+ *
+ * Proxy headers (CF-Connecting-IP / X-Forwarded-For / X-Real-IP) are only
+ * trusted when running behind a proxy (Vercel / Cloudflare). When running
+ * without a proxy they are client-spoofable and would let an attacker
+ * bypass the per-IP limit — so we fall back to the socket address.
  */
 function rateLimitKey(req: NextRequest): string {
-  const ip =
-    req.headers.get("cf-connecting-ip") ??
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    req.headers.get("x-real-ip") ??
-    "127.0.0.1";
+  const trustedProxy = process.env.VERCEL === "1" || process.env.TRUST_PROXY_HEADERS === "1";
+
+  const ip = trustedProxy
+    ? (req.headers.get("cf-connecting-ip") ??
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      req.headers.get("x-real-ip") ??
+      "unknown")
+    : "local";
 
   const path = req.nextUrl?.pathname ?? "/unknown";
   return `${ip}:${path}`;
@@ -54,7 +61,7 @@ export function withRateLimit(
     if (!result.allowed) {
       headers["Retry-After"] = String(Math.ceil(result.resetInMs / 1000));
       return NextResponse.json(
-        { error: "Rate limit terlampaui. Silakan tunggu sebelum mencoba lagi." },
+        { error: "Rate limit exceeded. Please wait before trying again." },
         { status: 429, headers }
       );
     }

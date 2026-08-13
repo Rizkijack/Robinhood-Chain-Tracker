@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 
 import "./globals.css";
@@ -24,21 +23,12 @@ import "./styles/whale-dashboard.css";
 import { WalletProviders } from "@/components/WalletProviders";
 
 // ── Font configuration ─────────────────────────────────────────
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter",
-  fallback: ["Segoe UI", "system-ui", "-apple-system", "sans-serif"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-mono",
-  fallback: ["Cascadia Code", "Consolas", "Courier New", "monospace"],
-  weight: ["400", "500", "600", "700"],
-});
+// Fonts are system-stack only. We intentionally do NOT use
+// next/font/google: the build fetches the woff2 files from
+// fonts.gstatic.com, which hangs/crashes `next build` on networks
+// where Google Fonts is unreachable. The --font-inter/--font-mono
+// variables below are the same names next/font used to expose, so
+// existing CSS keeps working with graceful system-font fallbacks.
 
 export const metadata: Metadata = {
   title: "Robinhood Pair Tracker — Early & New Tokens",
@@ -69,7 +59,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0c1017" />

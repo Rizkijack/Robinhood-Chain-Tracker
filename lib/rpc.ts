@@ -164,11 +164,9 @@ export function readContractSafe<T>(args: {
       // We encode the function call manually using viem's
       // encodeFunctionData (typed as any to avoid ABI generic issues),
       // then decode the result with decodeFunctionResult.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = encodeFunctionData({
         abi: args.abi as any,
         functionName: args.functionName,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         args: (args.args ?? []) as any,
       });
 
@@ -185,7 +183,6 @@ export function readContractSafe<T>(args: {
       }
 
       // Decode the return data using the ABI.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const decoded: any = decodeFunctionResult({
         abi: args.abi as any,
         functionName: args.functionName,

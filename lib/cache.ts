@@ -25,7 +25,13 @@ const PREFIX = "rh:";
 type Entry<T> = { expires: number; value: T };
 const memStore = new Map<string, Entry<unknown>>();
 
-// ─── Public API (same signatures, now async) ────────────────────────────────
+// ─── Single-flight ──────────────────────────────────────────────────────────
+// When the cache is cold (e.g. right after a cron refresh or on a fresh
+// serverless instance), concurrent requests for the same key would all
+// re-fetch the external API simultaneously and trip its rate limit.
+// We de-duplicate in-flight fetches per key: the first caller runs the
+// fetch, everyone else awaits the same promise.
+const inflight = new Map<string, Promise<unknown>>();
 
 export async function cacheGet<T>(key: string): Promise<T | null> {
   const redis = getRedis();
@@ -76,7 +82,21 @@ export async function cached<T>(
 ): Promise<T> {
   const existing = await cacheGet<T>(key);
   if (existing !== null) return existing;
-  const value = await fn();
-  await cacheSet(key, value, ttlMs);
-  return value;
+
+  // De-duplicate concurrent fetches for the same key.
+  const pending = inflight.get(key);
+  if (pending) return pending as Promise<T>;
+
+  const promise = (async () => {
+    try {
+      const value = await fn();
+      await cacheSet(key, value, ttlMs);
+      return value;
+    } finally {
+      inflight.delete(key);
+    }
+  })();
+
+  inflight.set(key, promise);
+  return promise;
 }

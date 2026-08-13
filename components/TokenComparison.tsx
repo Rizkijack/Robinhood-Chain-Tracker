@@ -17,9 +17,9 @@ export function TokenComparison({
   onAdd,
   onClose,
 }: TokenComparisonProps) {
-  if (tokens.length < 2) return null;
-
   const metrics = useMemo(() => buildMetrics(tokens), [tokens]);
+
+  if (tokens.length < 2) return null;
 
   return (
     <div className="compare-panel">
