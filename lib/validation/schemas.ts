@@ -4,43 +4,41 @@ import { z } from "zod";
  * Sanitize string input by:
  * - Trimming whitespace
  * - Removing null bytes and control characters
- * - Preventing path traversal attacks
- * - Removing potential SQL injection patterns
- * - Filtering dangerous characters
+ * - Normalizing runs of whitespace to a single space
+ *
+ * Intentionally minimal: there is no SQL database here and every value is
+ * ultimately passed to external HTTP APIs via `URLSearchParams`, which
+ * percent-encodes it. Historically this function also stripped SQL keywords
+ * (OR/AND), "..", parentheses, quotes and %XX sequences — that was cargo-cult
+ * "security" that provided no real protection (no SQL engine, values already
+ * URL-encoded) while corrupting legitimate inputs such as token names that
+ * contain "OR", "AND" or brackets.
+ *
+ * Real validation happens at the zod schema level below (whitelist regexes +
+ * length limits), so this helper is intentionally minimal.
  */
 function sanitizeString(input: string): string {
   if (typeof input !== "string") return "";
 
   return input
     .trim()
-    // Remove null bytes
-    .replace(/\0/g, "")
-    // Remove control characters (except newline, tab)
-    .replace(/[\x00-\x1F\x7F-\x9F]/g, "")
-    // Prevent path traversal (../)
-    .replace(/\.\./g, "")
-    // Remove null bytes
-    .replace(/\u0000/g, "")
-    // Remove potential SQL injection patterns
-    .replace(/(\b|\s)OR\b/gi, "")
-    .replace(/(\b|\s)AND\b/gi, "")
-    .replace(/--/g, "")
-    .replace(/\/\*/g, "")
-    .replace(/\*\//g, "")
-    // Remove dangerous characters that could be used for injection
-    .replace(/[<>\"'`;{}[\]()]/g, "")
-    // Normalize whitespace
+    // Remove null bytes and control characters
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+    // Normalize whitespace runs to a single space
     .replace(/\s+/g, " ");
 }
 
 /**
- * Sanitize URL input for external API requests
+ * Sanitize URL input for external API requests.
+ *
+ * Values passed here are always URL-encoded before being sent to external
+ * sources (guarding against injection / SSRF), so the only additional
+ * defence-in-depth we keep is stripping dangerous URL scheme prefixes.
  */
 function sanitizeUrlInput(input: string): string {
   return sanitizeString(input)
-    // Remove URL encoding that could be used maliciously
-    .replace(/%[0-9a-fA-F]{2}/g, "")
-    // Remove potential XSS patterns
+    // Remove dangerous URL scheme prefixes (defence in depth; the actual
+    // protection is the URLSearchParams encoding + zod schemas below).
     .replace(/javascript:/gi, "")
     .replace(/vbscript:/gi, "")
     .replace(/data:/gi, "")
@@ -52,7 +50,7 @@ function sanitizeUrlInput(input: string): string {
  */
 function sanitizeSearchQuery(input: string): string {
   return sanitizeUrlInput(input)
-    // Limit to alphanumeric, spaces, and common symbols
+    // Limit to alphanumeric, spaces, and common symbol punctuation
     .replace(/[^a-zA-Z0-9\s\-_\.]/g, "")
     .substring(0, 200);
 }
@@ -61,8 +59,7 @@ function sanitizeSearchQuery(input: string): string {
  * Validate and sanitize Ethereum/Robinhood address
  */
 function sanitizeAddress(input: string): string {
-  const cleaned = sanitizeString(input).toLowerCase();
-  return cleaned;
+  return sanitizeString(input).toLowerCase();
 }
 
 // Export sanitization utilities for reuse

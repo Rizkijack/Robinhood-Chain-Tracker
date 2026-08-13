@@ -11,8 +11,6 @@ import {
   fetchGeckoNewPools,
 } from "./sources/geckoterminal";
 
-const RECOMMENDED_REFRESH = recommendedClientRefreshMs();
-
 /**
  * Aggregate stats from all sources — counts and key metrics
  * (total liquidity, volume, top pair).
@@ -56,6 +54,6 @@ export async function getStats(): Promise<StatsResponse> {
       avgLiquidityPerPair: avgLiquidityPerPair || undefined,
       topVolumePair: topVolumePair ? { name: topVolumePair.name, volume24h: topVolumePair.volume24h ?? 0 } : undefined,
     },
-    recommendedRefreshMs: RECOMMENDED_REFRESH,
+    recommendedRefreshMs: recommendedClientRefreshMs(),
   };
 }

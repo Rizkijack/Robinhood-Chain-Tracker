@@ -32,14 +32,26 @@ export function middleware(req: NextRequest) {
     return new NextResponse(null, { status: 204, headers: API_CORS });
   }
 
-  const headers = new Headers(SECURITY_HEADERS);
+  // Apply headers ONLY to the response. We must NOT pass `request.headers`
+  // here: `NextResponse.next({ request: { headers } })` *replaces* the
+  // downstream request headers with the provided set, which would drop the
+  // original headers (x-forwarded-for, cf-connecting-ip, cookie,
+  // authorization, user-agent, ...). That breaks per-IP rate limiting in
+  // lib/with-rate-limit.ts (reads forwarded headers) on Vercel and any route
+  // that inspects the request. Response-only headers keep the request intact.
+  const response = NextResponse.next();
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(key, value);
+  }
   if (pathname.startsWith("/api/")) {
     for (const [key, value] of Object.entries(API_CORS)) {
       headers.set(key, value);
     }
   }
+  headers.forEach((value, key) => response.headers.set(key, value));
 
-  return NextResponse.next({ request: { headers }, headers });
+  return response;
 }
 
 export const config = {

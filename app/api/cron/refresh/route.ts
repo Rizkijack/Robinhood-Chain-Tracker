@@ -4,16 +4,18 @@
 // Configure in vercel.json:
 //   "crons": [{
 //     "path": "/api/cron/refresh",
-//     "schedule": "*/1 * * * *"
+//     "schedule": "*/5 * * * *"
 //   }]
 //
 // For local testing, call: curl http://localhost:3000/api/cron/refresh
 //
-// The cron secret is optional but recommended to prevent abuse.
-// Set CRON_SECRET in Vercel env vars, then pass it as ?secret= in the cron URL.
-// If no CRON_SECRET is configured, the endpoint is publicly accessible
-// (acceptable for development).
+// The cron secret is optional but strongly recommended in production to
+// prevent public abuse. Set CRON_SECRET in Vercel env vars. When CRON_SECRET
+// is set, Vercel Cron automatically sends it in an `Authorization` header of
+// the form `Bearer <secret>`, which this handler also accepts. Leaving it
+// unset exposes the endpoint publicly (acceptable for development).
 
+import { z } from "zod";
 import { NextResponse } from "next/server";
 import { refreshAllFeeds } from "@/lib/background-refresh";
 import { getBoostsFeed, getNewPairsFeed, getTrendingFeed } from "@/lib/aggregate";
@@ -26,18 +28,38 @@ type RefreshResult = {
   errors: string[];
 };
 
+const feedEnum = z.enum(["new", "trending", "boosts"]).optional();
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get("secret");
   const expected = process.env.CRON_SECRET;
 
-  // If CRON_SECRET is configured, validate it
-  if (expected && secret !== expected) {
+  // If CRON_SECRET is configured, validate it. Vercel Cron sends it as a
+  // "Bearer <secret>" Authorization header; also allow a ?secret= query param
+  // for local/manual testing.
+  let authorized = true;
+  if (expected) {
+    const authHeader = request.headers.get("authorization");
+    const bearer = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : null;
+    authorized = secret === expected || bearer === expected;
+  }
+  if (!authorized) {
     return NextResponse.json({ error: "Invalid secret" }, { status: 401 });
   }
 
-  // Optional: check for a specific feed query param, refresh all by default
-  const feed = searchParams.get("feed") as "new" | "trending" | "boosts" | null;
+  // Optional: refresh a specific feed (new | trending | boosts); default all.
+  const rawFeed = searchParams.get("feed");
+  const feedParse = feedEnum.safeParse(rawFeed ?? undefined);
+  if (!feedParse.success) {
+    return NextResponse.json(
+      { error: "Invalid feed. Must be one of: new, trending, boosts" },
+      { status: 400 }
+    );
+  }
+  const feed = feedParse.data;
 
   try {
     const start = Date.now();

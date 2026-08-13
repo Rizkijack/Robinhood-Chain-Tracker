@@ -22,8 +22,6 @@ import { enrichRobinhoodWithCoinMarketCap } from "./sources/coinmarketcap";
 import { enrichRobinhoodWithDefiLlama } from "./sources/defillama";
 import { mergeLists, mergePair } from "./merge";
 
-const RECOMMENDED_REFRESH = recommendedClientRefreshMs();
-
 // ---- sort helpers ----------------------------------------------------------
 
 function sortByNewest(pairs: TrackedPair[]): TrackedPair[] {
@@ -129,7 +127,7 @@ export async function getNewPairsFeed(): Promise<FeedResponse> {
     count: pairs.length,
     pairs,
     errors: errors.length ? errors : undefined,
-    recommendedRefreshMs: RECOMMENDED_REFRESH,
+    recommendedRefreshMs: recommendedClientRefreshMs(),
   };
 }
 
@@ -234,7 +232,7 @@ export async function getTrendingFeed(): Promise<FeedResponse> {
     count: merged.length,
     pairs: merged,
     errors: errors.length ? errors : undefined,
-    recommendedRefreshMs: RECOMMENDED_REFRESH,
+    recommendedRefreshMs: recommendedClientRefreshMs(),
   };
 }
 
@@ -296,6 +294,6 @@ export async function searchPairs(q: string): Promise<FeedResponse> {
     count: pairs.length,
     pairs,
     errors: errors.length ? errors : undefined,
-    recommendedRefreshMs: RECOMMENDED_REFRESH,
+    recommendedRefreshMs: recommendedClientRefreshMs(),
   };
 }

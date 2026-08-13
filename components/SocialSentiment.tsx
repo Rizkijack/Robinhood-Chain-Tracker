@@ -32,7 +32,7 @@ export function SocialSentiment({ items, isLoading }: SocialSentimentProps) {
           )}
         </div>
         <span className="muted" style={{ fontSize: 11 }}>
-          Live from social channels
+          Sample data — demo feed, not live
         </span>
       </div>
 

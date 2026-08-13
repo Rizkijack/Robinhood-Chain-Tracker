@@ -70,8 +70,8 @@ export function withRateLimit(
 
     // Attach rate-limit headers to the successful response
     if (response instanceof NextResponse) {
-      for (const [key, value] of Object.entries(headers)) {
-        response.headers.set(key, value);
+      for (const [headerName, headerValue] of Object.entries(headers)) {
+        response.headers.set(headerName, headerValue);
       }
     }
 

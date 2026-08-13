@@ -47,7 +47,7 @@ function generateSummary(pair: TrackedPair): { text: string; insights: SummaryIn
 
   // Token basics
   const age = pair.ageMs ? formatAge(pair.ageMs) : "unknown age";
-  parts.push(`<strong>${pair.symbol}</strong> is a ${age} token on Robinhood Chain trading at <strong>${formatUsd(pair.priceUsd)}</strong>.`);
+  parts.push(`${pair.symbol} is a ${age} token on Robinhood Chain trading at ${formatUsd(pair.priceUsd)}.`);
 
   // Liquidity analysis
   const liq = pair.liquidityUsd ?? 0;

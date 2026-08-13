@@ -26,7 +26,7 @@ export const GET = withRateLimit(
     if (!apiKey) {
       return NextResponse.json(
         { error: "ARKHAM_API_KEY not configured", transactions: [] },
-        { status: 200 }
+        { status: 503 }
       );
     }
 
@@ -48,7 +48,7 @@ export const GET = withRateLimit(
     } catch (e) {
       return NextResponse.json(
         { error: String(e), address: parsed.data.address, transactions: [] },
-        { status: 200 }
+        { status: 502 }
       );
     }
   }

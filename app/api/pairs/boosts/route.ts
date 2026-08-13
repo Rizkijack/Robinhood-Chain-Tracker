@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBoostsFeed } from "@/lib/aggregate";
-import { emptyParams } from "@/lib/validation/schemas";
+import { feedQueryParams } from "@/lib/validation/schemas";
 import { validateRequest } from "@/lib/validation/helpers";
 import { apiLimiter } from "@/lib/rate-limit";
 import { withRateLimit } from "@/lib/with-rate-limit";
@@ -10,7 +10,7 @@ export const revalidate = 0;
 
 export const GET = withRateLimit(apiLimiter, async (req: NextRequest) => {
   const raw = Object.fromEntries(req.nextUrl.searchParams.entries());
-  const parsed = validateRequest(emptyParams, raw);
+  const parsed = validateRequest(feedQueryParams, raw);
   if (!parsed.success) return parsed.response;
 
   try {

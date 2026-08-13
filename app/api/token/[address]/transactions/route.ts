@@ -32,11 +32,35 @@ export const GET = withRateLimit(strictLimiter, async (
   });
   if (!parsed.success) return parsed.response;
 
-  const pairAddress = req.nextUrl.searchParams.get("pairAddress") || undefined;
-  const tokenPriceUsd = req.nextUrl.searchParams.get("priceUsd")
-    ? parseFloat(req.nextUrl.searchParams.get("priceUsd")!)
-    : undefined;
-  const tokenSymbol = req.nextUrl.searchParams.get("symbol") || undefined;
+  const pairAddressRaw = req.nextUrl.searchParams.get("pairAddress") || undefined;
+  const tokenPriceUsdRaw = req.nextUrl.searchParams.get("priceUsd") || undefined;
+  const tokenSymbolRaw = req.nextUrl.searchParams.get("symbol") || undefined;
+
+  // Validate optional query params before they reach Arkham / Blockscout and
+  // are incorporated into server-side cache keys.
+  let pairAddress: string | undefined;
+  if (pairAddressRaw !== undefined) {
+    const pa = addressParam.safeParse(pairAddressRaw);
+    if (!pa.success) {
+      return NextResponse.json({ error: "Invalid pairAddress" }, { status: 400 });
+    }
+    pairAddress = pa.data;
+  }
+
+  // priceUsd must be a finite positive number; silently ignore malformed values.
+  let tokenPriceUsd: number | undefined;
+  if (tokenPriceUsdRaw) {
+    const n = Number(tokenPriceUsdRaw);
+    if (Number.isFinite(n) && n > 0) tokenPriceUsd = n;
+  }
+
+  // symbol is a display hint — clamp to a reasonable length so it can't bloat cache keys.
+  let tokenSymbol: string | undefined;
+  if (tokenSymbolRaw) {
+    const s = tokenSymbolRaw.trim();
+    tokenSymbol = s ? s.slice(0, 32) : undefined;
+  }
+
   const limitRaw = parseInt(req.nextUrl.searchParams.get("limit") || "50", 10);
   const limit = Math.max(1, Math.min(Number.isFinite(limitRaw) ? limitRaw : 50, 200));
 

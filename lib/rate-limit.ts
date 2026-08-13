@@ -151,6 +151,7 @@ if (typeof setInterval !== "undefined" && !useRedis) {
   const pruneTimer = setInterval(() => {
     (_apiLimiter as RateLimiter).prune();
     (_strictLimiter as RateLimiter).prune();
+    (_whaleLimiter as RateLimiter).prune();
   }, RATE_LIMIT_PRUNE_INTERVAL_MS);
 
   if (typeof pruneTimer === "object" && "unref" in pruneTimer) {

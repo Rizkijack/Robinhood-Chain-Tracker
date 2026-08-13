@@ -1,7 +1,10 @@
 /**
- * Tests for the SSE client.
+ * Unit tests for the SSEClient (Tier-2 streaming fallback).
+ *
+ * Uses a mock global EventSource (simulating async connection) so no real
+ * network is needed. Runs in vitest's default `node` environment.
  */
-
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { SSEClient } from "../sse-client";
 
 // Mock EventSource
@@ -11,7 +14,7 @@ class MockEventSource {
   onerror: (() => void) | null = null;
   readyState: number = 0;
   url: string;
-  
+
   constructor(url: string) {
     this.url = url;
     // Simulate async connection
@@ -20,14 +23,21 @@ class MockEventSource {
       this.onopen?.();
     }, 10);
   }
-  
+
   close() {
     this.readyState = 2; // CLOSED
   }
 }
 
+Object.defineProperty(MockEventSource, "CONNECTING", { value: 0 });
+Object.defineProperty(MockEventSource, "OPEN", { value: 1 });
+Object.defineProperty(MockEventSource, "CLOSED", { value: 2 });
+MockEventSource.prototype.CONNECTING = 0;
+MockEventSource.prototype.OPEN = 1;
+MockEventSource.prototype.CLOSED = 2;
+
 // @ts-ignore - Mock global EventSource
-global.EventSource = MockEventSource as any;
+globalThis.EventSource = MockEventSource as unknown as typeof EventSource;
 
 describe("SSEClient", () => {
   let client: SSEClient;
@@ -41,27 +51,27 @@ describe("SSEClient", () => {
     client.disconnect();
   });
 
-  test("should connect successfully", async () => {
+  it("should connect successfully", async () => {
     const connected = await client.connect();
     expect(connected).toBe(true);
     expect(client.isConnected).toBe(true);
   });
 
-  test("should emit open event on connection", async () => {
-    const openHandler = jest.fn();
+  it("should emit open event on connection", async () => {
+    const openHandler = vi.fn();
     client.on("open", openHandler);
-    
+
     await client.connect();
-    
+
     expect(openHandler).toHaveBeenCalled();
   });
 
-  test("should handle incoming messages", async () => {
-    const messageHandler = jest.fn();
+  it("should handle incoming messages", async () => {
+    const messageHandler = vi.fn();
     client.on("message", messageHandler);
-    
+
     await client.connect();
-    
+
     // Simulate incoming message
     const mockEventSource = (client as any).eventSource;
     const testData = JSON.stringify({
@@ -72,24 +82,24 @@ describe("SSEClient", () => {
         result: { number: "0x123456" },
       },
     });
-    
+
     mockEventSource.onmessage?.({ data: testData });
-    
+
     expect(messageHandler).toHaveBeenCalled();
   });
 
-  test("should disconnect properly", async () => {
+  it("should disconnect properly", async () => {
     await client.connect();
     expect(client.isConnected).toBe(true);
-    
+
     client.disconnect();
     expect(client.isConnected).toBe(false);
   });
 
-  test("should not connect twice", async () => {
+  it("should not connect twice", async () => {
     const result1 = await client.connect();
     const result2 = await client.connect();
-    
+
     expect(result1).toBe(true);
     expect(result2).toBe(true);
   });

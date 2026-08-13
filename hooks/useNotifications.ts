@@ -5,6 +5,18 @@ import type { TrackedPair } from "@/lib/types";
 import { useFeedStore, useNotificationStore } from "@/lib/store";
 
 /**
+ * Stable DexScreener link for a pair. Prefer the pair's canonical link (when
+ * present), otherwise build a Robinhood-slug URL. We never interpolate
+ * `pair.dexId` (untrusted external data) into the path.
+ */
+function pairDexscreenerUrl(
+  pair: Pick<TrackedPair, "pairAddress" | "tokenAddress" | "links">
+): string {
+  if (pair.links?.dexscreener) return pair.links.dexscreener;
+  return `https://dexscreener.com/robinhood/${pair.pairAddress || pair.tokenAddress}`;
+}
+
+/**
  * Hook that watches feed changes and fires notifications for:
  * - New pairs (token address not seen before)
  * - Price spikes (priceChange5m exceeds threshold)
@@ -87,7 +99,7 @@ export function useNotifications() {
                 icon: pair.imageUrl || "/logo.svg",
                 tag: `newpair-${addr}`,
               }).onclick = () => {
-                window.open(`https://dexscreener.com/${pair.dexId}/${pair.pairAddress}`, "_blank");
+                window.open(pairDexscreenerUrl(pair), "_blank", "noopener,noreferrer");
               };
             } catch {
               /* ignore notification errors in unsupported contexts */
@@ -127,7 +139,7 @@ export function useNotifications() {
                 icon: pair.imageUrl || "/logo.svg",
                 tag: `spike-${addr}`,
               }).onclick = () => {
-                window.open(`https://dexscreener.com/${pair.dexId}/${pair.pairAddress}`, "_blank");
+                window.open(pairDexscreenerUrl(pair), "_blank", "noopener,noreferrer");
               };
             } catch {
               /* ignore notification errors in unsupported contexts */

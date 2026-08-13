@@ -4,15 +4,9 @@ const nextConfig = {
   distDir: ".next",
   images: {
     unoptimized: true,
-    remotePatterns: [
-      { protocol: "https", hostname: "cdn.dexscreener.com" },
-      { protocol: "https", hostname: "**.geckoterminal.com" },
-      { protocol: "https", hostname: "assets.geckoterminal.com" },
-      { protocol: "https", hostname: "coin-images.coingecko.com" },
-    ],
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   webpack: (config) => {
     // Optional peer deps dari wagmi/connectors & @privy-io/react-auth

@@ -20,7 +20,7 @@ export const GET = withRateLimit(whaleLimiter, async () => {
   if (!apiKey) {
     return NextResponse.json(
       { error: "ARKHAM_API_KEY not configured", flowData: [] },
-      { status: 200 }
+      { status: 503 }
     );
   }
 
@@ -96,6 +96,6 @@ export const GET = withRateLimit(whaleLimiter, async () => {
       { headers: { "Cache-Control": "no-store, max-age=0" } }
     );
   } catch (e) {
-    return NextResponse.json({ error: String(e), flowData: [] }, { status: 200 });
+    return NextResponse.json({ error: String(e), flowData: [] }, { status: 502 });
   }
 });
