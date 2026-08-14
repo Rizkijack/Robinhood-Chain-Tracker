@@ -40,13 +40,14 @@ export const LAUNCHPAD_SOURCES: LaunchpadPlatformInfo[] = [
   { id: "flap", name: "Flap", url: "https://flap.sh", implemented: true },
   { id: "trench", name: "Trench", url: "https://trench.today", implemented: true },
   { id: "bow", name: "Bow", url: "https://bow.fun", implemented: true },
-  { id: "bags", name: "Bags", url: "https://bags.fm", implemented: true },
+  { id: "bags", name: "Bags", url: "https://bags.fm", implemented: false },
+  { id: "poolsfun", name: "Pools.fun", url: "https://pools.fun", implemented: true },
+  { id: "letscash", name: "letscash", url: "https://letscash.fun", implemented: true },
+  { id: "long", name: "Long", url: "https://long.xyz", implemented: true },
+  { id: "virtuals", name: "Virtuals", url: "https://virtuals.io", implemented: true },
+  { id: "sushi", name: "Sushi", url: "https://sushi.com", implemented: true },
   // ── Phase 2b (reserved, not yet implemented) ─────────────────
-  { id: "poolsfun", name: "Pools.fun", url: "https://pools.fun", implemented: false },
-  { id: "letscash", name: "letscash", url: "https://letscash.fun", implemented: false },
-  { id: "long", name: "Long", url: "https://long.xyz", implemented: false },
   { id: "varo", name: "Varo", url: "https://varo.rialto.xyz", implemented: false },
-  { id: "virtuals", name: "Virtuals", url: "https://virtuals.io", implemented: false },
   { id: "noxa", name: "Noxa", url: "https://noxa.fi", implemented: false },
 ];
 

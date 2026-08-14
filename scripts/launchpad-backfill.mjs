@@ -39,14 +39,14 @@ const PLATFORMS = [
   {
     id: "ponsv2",
     factory: "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
-    event: "event TokenLaunched(address indexed token, address indexed deployer)",
+    event: "event TokenLaunched(address indexed token, address indexed curve, address indexed deployer, address pairToken, uint256 launchConfigId, uint256 graduationThreshold)",
     deployBlock: 7500000,
-    enabled: false, // skipped — brand-new factory, revisit later
+    enabled: true,
   },
   {
     id: "flap",
     factory: "0x26605f322f7fF986f381bB9A6e3f5DAb0bEaEb09",
-    event: "event TokenCreated(address indexed token, address indexed creator)",
+    event: "event TokenCreated(uint256 ts, address creator, uint256 nonce, address token, string name, string symbol, string meta)",
     deployBlock: 7500000,
     enabled: true,
   },
@@ -55,7 +55,7 @@ const PLATFORMS = [
     factory: "0x77dC6f6361b7b99456FC3761ce5b7ddA80d83f9d",
     event: "event TokenCreate(address indexed creator, address curve, address token, address quote, string name, string symbol, uint256 timestamp, string tokenURI)",
     deployBlock: 7500000,
-    enabled: true,
+    enabled: false, // signature not yet confirmed — see contracts.ts
   },
   {
     id: "bow",
@@ -67,8 +67,43 @@ const PLATFORMS = [
   {
     id: "bags",
     factory: "0xe8Cc4431adF8b5A847C113EF0c6af9043219Cb37",
-    event: "event TokenCreated(address indexed token, address indexed creator)",
+    event: "event TokenCreated(address indexed token, address indexed curve, address indexed creator, address feeShare, address partner, bytes32 poolId, string name, string symbol, string metadataURI)",
     deployBlock: 7887312,
+    enabled: false, // skipped per user request
+  },
+  {
+    id: "poolsfun",
+    factory: "0x626C3d09B65bF5d1D40E0D5F25e19fa49783B3D4",
+    event: "event TokenLaunched(address indexed token, address indexed pool, address pairedAsset, address indexed creator, address deployer, address feeRecipient, int24 startTick, string metadataUri, uint256 devBuyAmountOut)",
+    deployBlock: 7500000,
+    enabled: true,
+  },
+  {
+    id: "letscash",
+    factory: "0x5bd1Fbe78a78fe8236fa00CF48fbEBA74ae34661",
+    event: "event TokenLaunched(address indexed token, address indexed creator, bytes32 indexed poolId, uint256 configId, uint256 firstBuyIn, uint256 firstBuyOut, address hook, address feeRecipient)",
+    deployBlock: 7500000,
+    enabled: true,
+  },
+  {
+    id: "long",
+    factory: "0x22e99278308B393ea1260859B181AD7E78f5eeED",
+    event: "event LaunchCreated(address indexed poolOrHook, address indexed asset, address indexed numeraire, address poolInitializer, address launcher, bytes32 tickerKey, uint48 deployedAt, uint48 reservedUntil, string normalizedTicker)",
+    deployBlock: 7500000,
+    enabled: true,
+  },
+  {
+    id: "virtuals",
+    factory: "0xd4cCBFA37e2f35611b3042e4096Ad7a3459Bd007",
+    event: "event Launched(address indexed token, address indexed pair, uint256 virtualId, uint256 initialPurchase, uint256 initialPurchasedAmount, tuple(uint8,uint16,bool,uint8,bool) launchParams)",
+    deployBlock: 7500000,
+    enabled: true,
+  },
+  {
+    id: "sushi",
+    factory: "0x104f1ab42674565ec3df0bfebccc4186f72fa7ed",
+    event: "event TokenLaunched(address indexed creator, address indexed token, address indexed pool, address quoteToken, int24 startTick, string name, string symbol, uint16 reserveBps, uint256 reserveAmount, uint64 reserveUnlockAt, uint16 initialSushiFeeBps)",
+    deployBlock: 7500000,
     enabled: true,
   },
 ];
@@ -79,7 +114,10 @@ const arg = (name) => {
   return hit ? hit.split("=")[1] : undefined;
 };
 const platformFilter = arg("platform");
-const chunkSize = Number(arg("chunk") || 100000);
+// Default 20k blocks/chunk: small enough that dense factories (Flap,
+// Pons) don't trip the RPC's response-size limit, fast enough for a
+// 7-day backfill (~300 calls/platform).
+const chunkSize = Number(arg("chunk") || 20000);
 const dryRun = args.includes("--dry-run");
 
 // ~7 days of blocks at ~0.1s/block (measured). Start scan there, not at
@@ -158,7 +196,7 @@ async function scanPlatform(p) {
         log(`  ...${calls} calls, ${tokens.length} tokens (block ${end})`);
       }
       cursor = end + 1;
-      await sleep(120);
+      await sleep(300);
     } catch (e) {
       log(`  !! chunk ${cursor}-${end} failed: ${String(e).slice(0, 120)}`);
       await sleep(1500);

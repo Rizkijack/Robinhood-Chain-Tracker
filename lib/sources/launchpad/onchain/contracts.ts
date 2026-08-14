@@ -14,30 +14,31 @@ import { parseAbiItem } from "viem";
 import type { LaunchpadSourceId, LaunchpadToken } from "../types";
 import { launchpadInfo } from "../registry";
 
-// ── Launch event ABIs ───────────────────────────────────────────
+// ── Launch event ABIs (verified from Blockscout implementation ABI) ──
 
 export const EVENT_ABIS: Record<string, AbiEvent> = {
-  // Pons V1 / Noxa-style factory
+  // Pons V1 factory
   // TokenLaunched(address indexed token, address indexed deployer,
   //   address indexed dexFactory, address pairToken, address pool, ...)
   TokenLaunchedPons: parseAbiItem(
     "event TokenLaunched(address indexed token, address indexed deployer, address indexed dexFactory, address pairToken, address pool, uint256 dexId, uint256 launchConfigId, uint256 positionId, uint256 restrictionsEndBlock, uint256 initialBuyAmount)"
   ),
-  // Pons V2 factory
-  // TokenLaunched(address indexed token, address indexed deployer, ...)
+  // Pons V2 factory — verified ABI (PonsV2LaunchFactory)
+  // TokenLaunched(address token indexed, address curve indexed, address deployer indexed,
+  //   address pairToken, uint256 launchConfigId, uint256 graduationThreshold)
   TokenLaunchedV2: parseAbiItem(
-    "event TokenLaunched(address indexed token, address indexed deployer)"
+    "event TokenLaunched(address indexed token, address indexed curve, address indexed deployer, address pairToken, uint256 launchConfigId, uint256 graduationThreshold)"
   ),
-  // Flap Portal
-  // TokenCreated(address indexed token, address indexed creator, ...)
+  // Flap Portal — verified ABI (impl 0x7bc20c...)
+  // TokenCreated(uint256 ts, address creator, uint256 nonce, address token,
+  //   string name, string symbol, string meta)
   TokenCreatedFlap: parseAbiItem(
-    "event TokenCreated(address indexed token, address indexed creator)"
+    "event TokenCreated(uint256 ts, address creator, uint256 nonce, address token, string name, string symbol, string meta)"
   ),
-  // Trench TrenchManager
-  // TokenCreate(address indexed creator, address curve, address token,
-  //   address quote, string name, string symbol, uint256 timestamp, string tokenURI)
+  // Trench TrenchManager — reverse-engineered from log data (3 indexed:
+  // creator, curve, token; data: nonce, name, symbol, timestamp, tokenURI)
   TokenCreateTrench: parseAbiItem(
-    "event TokenCreate(address indexed creator, address curve, address token, address quote, string name, string symbol, uint256 timestamp, string tokenURI)"
+    "event TokenCreate(address indexed creator, address indexed curve, address indexed token, uint256 nonce, string name, string symbol, uint256 timestamp, string tokenURI)"
   ),
   // Bow FactoryHub
   // Launched(address indexed token, address indexed deployer, uint8 indexed version,
@@ -45,10 +46,64 @@ export const EVENT_ABIS: Record<string, AbiEvent> = {
   LaunchedBow: parseAbiItem(
     "event Launched(address indexed token, address indexed deployer, uint8 indexed version, uint8 slotId, address pool, bytes32 poolId, uint256 positionId, uint256 launchId)"
   ),
-  // Bags BagsFactory
-  // TokenCreated(address indexed token, address indexed creator, ...)
+  // Bags BagsFactory — verified ABI (impl 0x7dfa0131...)
+  // TokenCreated(address indexed token, address indexed curve, address indexed creator,
+  //   address feeShare, address partner, bytes32 poolId, string name, string symbol, string metadataURI)
   TokenCreatedBags: parseAbiItem(
-    "event TokenCreated(address indexed token, address indexed creator)"
+    "event TokenCreated(address indexed token, address indexed curve, address indexed creator, address feeShare, address partner, bytes32 poolId, string name, string symbol, string metadataURI)"
+  ),
+  // Pools.fun PartyFactory — verified ABI
+  // TokenLaunched(address indexed token, address indexed pool, address pairedAsset,
+  //   address indexed creator, address deployer, address feeRecipient, int24 startTick,
+  //   string metadataUri, uint256 devBuyAmountOut)
+  TokenLaunchedPoolsFun: parseAbiItem(
+    "event TokenLaunched(address indexed token, address indexed pool, address pairedAsset, address indexed creator, address deployer, address feeRecipient, int24 startTick, string metadataUri, uint256 devBuyAmountOut)"
+  ),
+  // letscash CashCatFactoryVNext — verified ABI (impl 0x3dfd73a6...)
+  // TokenLaunched(address indexed token, address indexed creator, bytes32 indexed poolId,
+  //   uint256 configId, uint256 firstBuyIn, uint256 firstBuyOut, address hook, address feeRecipient)
+  TokenLaunchedLetscash: parseAbiItem(
+    "event TokenLaunched(address indexed token, address indexed creator, bytes32 indexed poolId, uint256 configId, uint256 firstBuyIn, uint256 firstBuyOut, address hook, address feeRecipient)"
+  ),
+  // Long.xyz LongLauncher — verified ABI
+  // LaunchCreated(address indexed poolOrHook, address indexed asset, address indexed numeraire,
+  //   address poolInitializer, address launcher, bytes32 tickerKey, uint48 deployedAt,
+  //   uint48 reservedUntil, string normalizedTicker)
+  LaunchCreatedLong: parseAbiItem(
+    "event LaunchCreated(address indexed poolOrHook, address indexed asset, address indexed numeraire, address poolInitializer, address launcher, bytes32 tickerKey, uint48 deployedAt, uint48 reservedUntil, string normalizedTicker)"
+  ),
+  // Virtuals BondingV5 — verified ABI (impl 0x66fc520c...). The event
+  // includes a tuple, which parseAbiItem can't express, so we define the
+  // ABI as a JSON object instead.
+  LaunchedVirtuals: {
+    type: "event",
+    name: "Launched",
+    inputs: [
+      { type: "address", name: "token", indexed: true },
+      { type: "address", name: "pair", indexed: true },
+      { type: "uint256", name: "virtualId", indexed: false },
+      { type: "uint256", name: "initialPurchase", indexed: false },
+      { type: "uint256", name: "initialPurchasedAmount", indexed: false },
+      {
+        type: "tuple",
+        name: "launchParams",
+        components: [
+          { type: "uint8", name: "" },
+          { type: "uint16", name: "" },
+          { type: "bool", name: "" },
+          { type: "uint8", name: "" },
+          { type: "bool", name: "" },
+        ],
+        indexed: false,
+      },
+    ],
+  } as unknown as AbiEvent,
+  // Sushi SushiLaunchpad — verified ABI
+  // TokenLaunched(address indexed creator, address indexed token, address indexed pool,
+  //   address quoteToken, int24 startTick, string name, string symbol, uint16 reserveBps,
+  //   uint256 reserveAmount, uint64 reserveUnlockAt, uint16 initialSushiFeeBps)
+  TokenLaunchedSushi: parseAbiItem(
+    "event TokenLaunched(address indexed creator, address indexed token, address indexed pool, address quoteToken, int24 startTick, string name, string symbol, uint16 reserveBps, uint256 reserveAmount, uint64 reserveUnlockAt, uint16 initialSushiFeeBps)"
   ),
 };
 
@@ -191,6 +246,49 @@ function bagsToken(args: Record<string, unknown>, block: number): LaunchpadToken
   return t;
 }
 
+function poolsfunToken(args: Record<string, unknown>, block: number): LaunchpadToken | null {
+  const token = argAddress(args.token);
+  if (!token) return null;
+  // Pools.fun: full supply launches straight into a Sushi V3 pool.
+  return baseToken("poolsfun", token, null, null, argAddress(args.pool), block);
+}
+
+function letscashToken(args: Record<string, unknown>, block: number): LaunchpadToken | null {
+  const token = argAddress(args.token);
+  if (!token) return null;
+  // letscash: full supply seeds a v4 pool at launch → graduated.
+  const t = baseToken("letscash", token, null, null, null, block);
+  t.phase = "graduated";
+  return t;
+}
+
+function longToken(args: Record<string, unknown>, block: number): LaunchpadToken | null {
+  const token = argAddress(args.asset);
+  if (!token) return null;
+  // Long.xyz: time-epoch v4 launch; token trades from launch.
+  return baseToken("long", token, null, null, argAddress(args.poolOrHook), block);
+}
+
+function virtualsToken(args: Record<string, unknown>, block: number): LaunchpadToken | null {
+  const token = argAddress(args.token);
+  if (!token) return null;
+  // Virtuals: bonding curve → v2 graduation; starts on the curve.
+  const t = baseToken("virtuals", token, null, null, argAddress(args.pair), block);
+  t.phase = "bonding";
+  return t;
+}
+
+function sushiToken(args: Record<string, unknown>, block: number): LaunchpadToken | null {
+  const token = argAddress(args.token);
+  if (!token) return null;
+  const name = argString(args.name);
+  const symbol = argString(args.symbol);
+  // Sushi Launchpad: locked Sushi V3 pool from block one → graduated.
+  const t = baseToken("sushi", token, name, symbol, argAddress(args.pool), block);
+  t.phase = "graduated";
+  return t;
+}
+
 // ── Registry ───────────────────────────────────────────────────
 
 export const ONCHAIN_PLATFORMS: OnchainPlatformConfig[] = [
@@ -208,8 +306,7 @@ export const ONCHAIN_PLATFORMS: OnchainPlatformConfig[] = [
     event: EVENT_ABIS.TokenLaunchedV2,
     deployBlock: RH_LAUNCHPAD_DEPLOY_LOWER_BOUND,
     toToken: ponsV2Token,
-    // Disabled: brand-new factory, low historical volume; revisit later.
-    scanEnabled: false,
+    scanEnabled: true,
   },
   {
     id: "flap",
@@ -225,7 +322,10 @@ export const ONCHAIN_PLATFORMS: OnchainPlatformConfig[] = [
     event: EVENT_ABIS.TokenCreateTrench,
     deployBlock: RH_LAUNCHPAD_DEPLOY_LOWER_BOUND,
     toToken: trenchToken,
-    scanEnabled: true,
+    // Temporarily disabled: the exact event signature is not yet
+    // confirmed (observed topic0 0xe2eb7016... didn't match candidates).
+    // Reverse-engineering in progress — re-enable once verified.
+    scanEnabled: false,
   },
   {
     id: "bow",
@@ -241,6 +341,47 @@ export const ONCHAIN_PLATFORMS: OnchainPlatformConfig[] = [
     event: EVENT_ABIS.TokenCreatedBags,
     deployBlock: 7_887_312,
     toToken: bagsToken,
+    // Disabled per user request — Bags is skipped.
+    scanEnabled: false,
+  },
+  {
+    id: "poolsfun",
+    factory: "0x626C3d09B65bF5d1D40E0D5F25e19fa49783B3D4",
+    event: EVENT_ABIS.TokenLaunchedPoolsFun,
+    deployBlock: RH_LAUNCHPAD_DEPLOY_LOWER_BOUND,
+    toToken: poolsfunToken,
+    scanEnabled: true,
+  },
+  {
+    id: "letscash",
+    factory: "0x5bd1Fbe78a78fe8236fa00CF48fbEBA74ae34661",
+    event: EVENT_ABIS.TokenLaunchedLetscash,
+    deployBlock: RH_LAUNCHPAD_DEPLOY_LOWER_BOUND,
+    toToken: letscashToken,
+    scanEnabled: true,
+  },
+  {
+    id: "long",
+    factory: "0x22e99278308B393ea1260859B181AD7E78f5eeED",
+    event: EVENT_ABIS.LaunchCreatedLong,
+    deployBlock: RH_LAUNCHPAD_DEPLOY_LOWER_BOUND,
+    toToken: longToken,
+    scanEnabled: true,
+  },
+  {
+    id: "virtuals",
+    factory: "0xd4cCBFA37e2f35611b3042e4096Ad7a3459Bd007",
+    event: EVENT_ABIS.LaunchedVirtuals,
+    deployBlock: RH_LAUNCHPAD_DEPLOY_LOWER_BOUND,
+    toToken: virtualsToken,
+    scanEnabled: true,
+  },
+  {
+    id: "sushi",
+    factory: "0x104f1ab42674565ec3df0bfebccc4186f72fa7ed",
+    event: EVENT_ABIS.TokenLaunchedSushi,
+    deployBlock: RH_LAUNCHPAD_DEPLOY_LOWER_BOUND,
+    toToken: sushiToken,
     scanEnabled: true,
   },
 ];

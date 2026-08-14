@@ -21,6 +21,10 @@ const PLATFORM_STYLE: Record<string, { color: string; bg: string }> = {
   trench: { color: "#4ade80", bg: "rgba(74,222,128,.14)" },
   bow: { color: "#c084fc", bg: "rgba(192,132,252,.14)" },
   bags: { color: "#60a5fa", bg: "rgba(96,165,250,.14)" },
+  poolsfun: { color: "#f472b6", bg: "rgba(244,114,182,.14)" },
+  letscash: { color: "#34d399", bg: "rgba(52,211,153,.14)" },
+  long: { color: "#818cf8", bg: "rgba(129,140,248,.14)" },
+  virtuals: { color: "#38bdf8", bg: "rgba(56,189,248,.14)" },
 };
 
 function platformStyle(platform: string) {
