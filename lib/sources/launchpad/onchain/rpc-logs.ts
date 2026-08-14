@@ -2,7 +2,7 @@
  * Chunked `eth_getLogs` scanning for the on-chain launchpad indexer.
  *
  * The Robinhood public RPC times out on wide `eth_getLogs` ranges, so
- * every scan is split into bounded block chunks (default 2,000 blocks),
+ * every scan is split into bounded block chunks (default 100,000 blocks),
  * each with its own timeout and backoff. This module builds on the
  * existing `lib/rpc.ts` pool (multi-endpoint fallback + sticky).
  */

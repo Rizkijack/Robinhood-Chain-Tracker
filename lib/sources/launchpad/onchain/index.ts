@@ -43,20 +43,21 @@ export async function refreshOnchainIndex(): Promise<LaunchpadToken[]> {
     console.warn("[launchpad:onchain] platform errors:", errors);
   }
 
+  // Read the previous index directly from the cache.
+  const previous = (await cacheGet<LaunchpadToken[]>(INDEX_KEY)) ?? [];
+
+  // Total scan failure must never wipe the index — keep the last good
+  // snapshot and extend its TTL so a transient RPC outage doesn't
+  // expire the index before the next cron run.
   if (fresh.length === 0 && errors.length > 0) {
-    // Total scan failure — never wipe the index. Keep the last good
-    // snapshot and extend its TTL so a transient RPC outage doesn't
-    // expire the index before the next cron run.
-    const existing = await getOnchainTokens();
-    if (existing.length) await cacheSet(INDEX_KEY, existing, INDEX_TTL_S * 1000);
-    return existing;
+    if (previous.length) await cacheSet(INDEX_KEY, previous, INDEX_TTL_S * 1000);
+    return previous;
   }
 
-  // Merge fresh tokens with the stored index (dedupe by token address,
+  // Merge fresh tokens with the previous index (dedupe by token address,
   // prefer the fresh entry so launch metadata stays current).
-  const existing = await getOnchainTokens();
   const byAddress = new Map<string, LaunchpadToken>();
-  for (const t of existing) byAddress.set(t.tokenAddress, t);
+  for (const t of previous) byAddress.set(t.tokenAddress, t);
   for (const t of fresh) byAddress.set(t.tokenAddress, t);
 
   const merged = [...byAddress.values()];

@@ -167,6 +167,8 @@ export async function filterByMarketCap(
 
 /** Resolve block numbers to unix timestamps (batched, cached per block). */
 const blockTimeCache = new Map<number, number | null>();
+/** Cap the block→timestamp cache to bound memory in long-running processes. */
+const BLOCK_TIME_CACHE_MAX = 500;
 
 export async function resolveLaunchTimestamps(
   tokens: LaunchpadToken[]
@@ -197,6 +199,10 @@ export async function resolveLaunchTimestamps(
       };
       const ts = block.timestamp != null ? Number(block.timestamp) * 1000 : null;
       blockTimeCache.set(b, ts);
+      if (blockTimeCache.size > BLOCK_TIME_CACHE_MAX) {
+        const oldest = blockTimeCache.keys().next().value;
+        if (oldest !== undefined) blockTimeCache.delete(oldest);
+      }
       times.set(b, ts);
     } catch {
       times.set(b, null);

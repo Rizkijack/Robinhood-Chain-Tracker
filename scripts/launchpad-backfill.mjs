@@ -201,6 +201,10 @@ async function main() {
   }
   const results = [];
   const allTokens = new Map();
+  let headBlockRef = 0;
+  try {
+    headBlockRef = Number(await rpcCall(() => client.getBlockNumber()));
+  } catch { /* leave 0 — timestamps fall back to Date.now() */ }
 
   for (const p of targets) {
     const r = await scanPlatform(p);
@@ -228,38 +232,51 @@ async function main() {
     await redis.set(`${PREFIX}${r.platform}`, r.cursor, { ex: 60 * 60 * 24 * 30 });
     log(`  cursor ${r.platform} → ${r.cursor}`);
   }
+  // Resolve launch timestamps from block numbers. Block time is ~0.1s,
+  // so estimate: launchTime ≈ headTime − (headBlock − launchBlock) × 100ms.
+  // Good enough for sorting; the cron re-resolves precisely.
+  let headTs = Date.now();
+  try {
+    const hb = await rpcCall(() => client.getBlock({ blockNumber: BigInt(headBlockRef) }));
+    headTs = Number(hb.timestamp) * 1000;
+  } catch { /* keep Date.now() */ }
+
   // Write a full LaunchpadToken-shaped index so getOnchainTokens() can
   // read it directly. Fields that need on-chain lookups (name, symbol,
   // price, mcap) are filled later by refreshOnchainIndex (cron).
-  const index = [...allTokens.entries()].map(([addr, t]) => ({
-    id: `${t.platform}:${addr}`,
-    platform: t.platform,
-    platformName: t.platform,
-    tokenAddress: addr,
-    pairAddress: null,
-    name: "Unknown",
-    symbol: "???",
-    phase: "graduated",
-    priceUsd: null,
-    fdvUsd: null,
-    marketCapUsd: null,
-    liquidityUsd: null,
-    volume24hUsd: null,
-    launchTimeMs: null,
-    ageMs: null,
-    launchBlock: t.block,
-    imageUrl: null,
-    description: null,
-    socials: [],
-    graduationProgressPct: null,
-    thresholdQuote: null,
-    devBuyUsd: null,
-    holders: null,
-    feeSplit: null,
-    taxRateBps: null,
-    lockedLiquidity: true,
-    quoteSymbol: null,
-  }));
+  const index = [...allTokens.entries()].map(([addr, t]) => {
+    const launchTimeMs =
+      t.block != null ? headTs - (headBlockRef - t.block) * 100 : null;
+    return {
+      id: `${t.platform}:${addr}`,
+      platform: t.platform,
+      platformName: t.platform,
+      tokenAddress: addr,
+      pairAddress: null,
+      name: "Unknown",
+      symbol: "???",
+      phase: "graduated",
+      priceUsd: null,
+      fdvUsd: null,
+      marketCapUsd: null,
+      liquidityUsd: null,
+      volume24hUsd: null,
+      launchTimeMs,
+      ageMs: launchTimeMs != null ? Date.now() - launchTimeMs : null,
+      launchBlock: t.block,
+      imageUrl: null,
+      description: null,
+      socials: [],
+      graduationProgressPct: null,
+      thresholdQuote: null,
+      devBuyUsd: null,
+      holders: null,
+      feeSplit: null,
+      taxRateBps: null,
+      lockedLiquidity: true,
+      quoteSymbol: null,
+    };
+  });
   await redis.set(INDEX_KEY, index, { ex: 60 * 60 * 6 });
   log(`  index stored: ${index.length} tokens (TTL 6h — cron will refresh & filter)`);
   log("\nDone. Vercel cron will now keep the index fresh.");

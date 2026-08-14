@@ -56,7 +56,7 @@ export async function GET(request: Request) {
   const feedParse = feedEnum.safeParse(rawFeed ?? undefined);
   if (!feedParse.success) {
     return NextResponse.json(
-      { error: "Invalid feed. Must be one of: new, trending, boosts" },
+      { error: "Invalid feed. Must be one of: new, trending, boosts, launchpads" },
       { status: 400 }
     );
   }
@@ -107,6 +107,26 @@ export async function GET(request: Request) {
       } catch (e) {
         result.errors.push(`launchpads: ${String(e).slice(0, 200)}`);
       }
+      try {
+        await refreshOnchainIndex();
+      } catch (e) {
+        result.errors.push(`onchain: ${String(e).slice(0, 200)}`);
+      }
+    }
+
+    const allFeedsErrored =
+      Object.keys(result.feeds).length > 0 &&
+      Object.values(result.feeds).every((f) => f.status === "error");
+    if (allFeedsErrored) {
+      return NextResponse.json(
+        {
+          ok: false,
+          ...result,
+          durationMs: Date.now() - start,
+          cachedAt: new Date().toISOString(),
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({

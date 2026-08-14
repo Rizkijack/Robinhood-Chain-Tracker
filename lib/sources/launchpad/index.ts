@@ -18,17 +18,19 @@ import { fetchO1ExchangeTokens } from "./o1exchange";
 import { getOnchainTokens } from "./onchain";
 import { fetchPoolsTradeTokens } from "./poolstrade";
 import { implementedLaunchpads } from "./registry";
-import { fetchSushiLaunchpadTokens } from "./sushi";
 import type { LaunchpadFeedResponse, LaunchpadToken } from "./types";
 
 type Fetcher = () => Promise<LaunchpadToken[]>;
 
-/** Ordered list of enabled adapters (Phase 1 REST + Phase 2 on-chain). */
+/**
+ * Ordered list of enabled adapters (Phase 1 REST + Phase 2 on-chain).
+ * Sushi is temporarily excluded: the documented GraphQL endpoint
+ * (production.data-gcp.sushi.com/api) returns 404 — needs re-verification.
+ */
 const ADAPTERS: { id: string; fetch: Fetcher }[] = [
   { id: "lemon", fetch: () => fetchLemonTokens(200) },
   { id: "bankr", fetch: () => fetchBankrTokens() },
   { id: "poolstrade", fetch: () => fetchPoolsTradeTokens() },
-  { id: "sushi", fetch: () => fetchSushiLaunchpadTokens() },
   { id: "o1exchange", fetch: () => fetchO1ExchangeTokens(100) },
   { id: "onchain", fetch: () => getOnchainTokens() },
 ];
