@@ -19,8 +19,18 @@ import { getLastScannedBlock, setLastScannedBlock } from "./store";
 import { ONCHAIN_PLATFORMS, type OnchainPlatformConfig } from "./contracts";
 import type { LaunchpadToken } from "../types";
 
-/** Max blocks to scan per platform per run (keeps cron runs bounded). */
-const MAX_SCAN_BLOCKS = 100_000;
+/**
+ * Max blocks to scan per platform per run. Kept small so a single
+ * serverless cron invocation (Vercel Hobby: 30s maxDuration) stays
+ * within budget: 3k blocks ≈ 2 chunks × ~2s = ~4-6s per platform,
+ * × 6 platforms ≈ 30s worst case. The cursor advances every run.
+ *
+ * NOTE: full historical backfill (from deploy blocks) is impractical on
+ * a daily Hobby cron. Run `scripts/launchpad-backfill.mjs` locally once
+ * to pre-fill the cursor, then the cron only needs to keep up with new
+ * launches (~3k blocks/day is plenty for a ~100ms-block chain).
+ */
+const MAX_SCAN_BLOCKS = 3_000;
 
 /**
  * Scan a single platform factory for new launch events since the last
