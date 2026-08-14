@@ -6,7 +6,8 @@ export type TrackSource =
   | "geckoterminal"
   | "coingecko"
   | "coinmarketcap"
-  | "defillama";
+  | "defillama"
+  | "launchpad";
 
 export interface TrackedPair {
   id: string;
@@ -48,6 +49,7 @@ export interface TrackedPair {
     coingecko?: string;
     coinmarketcap?: string;
     defillama?: string;
+    launchpad?: string;
   };
   description?: string | null;
   socials?: { type: string; url: string }[];
@@ -166,6 +168,7 @@ export interface StatsResponse {
     totalVolume24hUsd?: number;
     avgLiquidityPerPair?: number;
     topVolumePair?: { name: string; volume24h: number };
+    launchpadCount?: number;
   };
   /** Recommended client auto-refresh cadence (ms), derived from enabled sources' rate limits */
   recommendedRefreshMs?: number;

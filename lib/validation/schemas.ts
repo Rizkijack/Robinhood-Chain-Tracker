@@ -108,3 +108,9 @@ export const feedQueryParams = z.object({
 export const searchQueryParams = z.object({
   q: searchQuery,
 }).strict();
+
+/** Launchpad feed route params — optional phase filter + limit. */
+export const launchpadQueryParams = z.object({
+  phase: z.enum(["bonding", "auction", "graduated", "all"]).optional(),
+  limit: optionalLimit,
+}).strict().optional();

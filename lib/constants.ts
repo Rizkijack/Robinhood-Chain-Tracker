@@ -28,6 +28,7 @@ export const KNOWN_DEXES = [
   "pancakeswap-v3-robinhood",
   "bankr-robinhood",
   "virtuals-robinhood",
+  "uniswap-pools-trade",
 ] as const;
 
 export const USER_AGENT = "RobinhoodPairTracker/1.0 (+local; research)";
@@ -100,6 +101,11 @@ export const SOURCE_TIMING: Record<string, SourceTiming> = {
   coingecko: { cacheTtlMs: 60_000, refreshMs: 60_000 },
   coinmarketcap: { cacheTtlMs: 300_000, refreshMs: 300_000, requiresApiKey: true, apiKeyEnv: "COINMARKETCAP_API_KEY" },
   defillama: { cacheTtlMs: 20_000, refreshMs: 15_000 },
+  lemon: { cacheTtlMs: 12_000, refreshMs: 12_000 },
+  bankr: { cacheTtlMs: 20_000, refreshMs: 20_000 },
+  poolstrade: { cacheTtlMs: 20_000, refreshMs: 20_000 },
+  sushi: { cacheTtlMs: 30_000, refreshMs: 30_000 },
+  o1exchange: { cacheTtlMs: 30_000, refreshMs: 30_000, requiresApiKey: true, apiKeyEnv: "O1_EXCHANGE_API_KEY" },
 };
 
 /** Sources that are currently usable given the environment (API keys, etc.). */

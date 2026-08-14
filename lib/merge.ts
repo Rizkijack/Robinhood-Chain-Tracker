@@ -62,6 +62,7 @@ export function mergePair(a: TrackedPair, b: TrackedPair): TrackedPair {
       coingecko: a.links.coingecko || b.links.coingecko,
       coinmarketcap: a.links.coinmarketcap || b.links.coinmarketcap,
       defillama: a.links.defillama || b.links.defillama,
+      launchpad: a.links.launchpad || b.links.launchpad,
     },
     description: a.description || b.description,
     socials: a.socials?.length ? a.socials : b.socials,

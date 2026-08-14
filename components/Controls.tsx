@@ -8,10 +8,11 @@ interface ControlsProps {
   filteredCount: number;
 }
 
-const TABS: { key: "new" | "trending" | "boosts" | "portfolio" | "watchlist" | "whales"; label: string; icon?: string }[] = [
+const TABS: { key: "new" | "trending" | "boosts" | "launchpads" | "portfolio" | "watchlist" | "whales"; label: string; icon?: string }[] = [
   { key: "new", label: "New Pairs" },
   { key: "trending", label: "Trending" },
   { key: "boosts", label: "Boosts" },
+  { key: "launchpads", label: "🚀 Launchpads" },
   { key: "watchlist", label: "★ Watchlist" },
   { key: "whales", label: "🐋 Whales" },
   { key: "portfolio", label: "Wallet" },
@@ -32,8 +33,8 @@ export function Controls({ dexOptions, filteredCount }: ControlsProps) {
   } = useFilterStore();
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const currentTab = tab as "new" | "trending" | "boosts" | "portfolio" | "watchlist" | "whales";
-  const showFilters = !["portfolio", "watchlist", "search", "whales"].includes(tab);
+  const currentTab = tab as "new" | "trending" | "boosts" | "launchpads" | "portfolio" | "watchlist" | "whales";
+  const showFilters = !["portfolio", "watchlist", "search", "whales", "launchpads"].includes(tab);
 
   return (
     <div className="controls-wrap">

@@ -9,6 +9,7 @@ Track **early / new pair tokens** on **Robinhood Chain (L2) Mainnet** by aggrega
 | **Birdeye.so** | Trending + new listings tokens (Free Standard plan) | ⚠️ `BIRDEYE_API_KEY` |
 | **CoinGecko** | Best-effort price/market-cap enrichment of Robinhood tokens (by symbol) | ✅ |
 | **CoinMarketCap** | Best-effort price/market-cap enrichment of Robinhood tokens (by symbol, API key) | ⚠️ `COINMARKETCAP_API_KEY` |
+| **Launchpads** | lemon.fun, Bankr, Pools.trade, Sushi Launchpad, 01.exchange (bonding-curve / auction / locked-LP token launches) | ⚠️ `O1_EXCHANGE_API_KEY` (01.exchange only) |
 | **DEXes** | Uniswap V2/V3/V4, PancakeSwap V2/V3, Bankr, Virtuals (via GeckoTerminal) | ✅ |
 
 ## Chain
@@ -38,6 +39,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - **Trending** — GeckoTerminal trending pools + DexScreener + Birdeye, enriched with DexScreener, GeckoTerminal, CoinGecko & CoinMarketCap real-time data. **Every row is a Robinhood-chain token** — CoinGecko/CMC only enrich existing Robinhood rows by symbol; they never add global coins.
 - **Boosts** — DexScreener latest/top boosts filtered to Robinhood
 - **Search** — DexScreener + GeckoTerminal search, Robinhood pairs only
+- **Launchpads** — dedicated tab aggregating token launches from lemon.fun, Bankr, Pools.trade, Sushi Launchpad & 01.exchange; phase filter (bonding/auction/graduated); graduated tokens also flow into Trending
 - **Filters** — max age, min liquidity, min volume, DEX
 - **Adaptive auto-refresh** — the client polls at the fastest cadence among enabled sources; each source caches server-side at its own rate-limit-aware TTL (DexScreener 20s, GeckoTerminal/Birdeye 30s, CoinGecko 60s, CoinMarketCap 300s). The exact interval is returned per feed as `recommendedRefreshMs`.
 - Per-row links: DexScreener, GeckoTerminal, CoinGecko, Birdeye, CoinMarketCap, copy address
@@ -50,6 +52,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `GET /api/pairs/trending` | Trending pools |
 | `GET /api/pairs/boosts` | Boosted tokens |
 | `GET /api/pairs/search?q=` | Search |
+| `GET /api/launchpads?phase=&limit=` | Aggregated launchpad tokens (phase filter: bonding/auction/graduated) |
 | `GET /api/stats` | Dashboard counters + DEX list |
 
 ## Notes
@@ -94,6 +97,7 @@ npm start
 | `BIRDEYE_BASE_URL` | Birdeye base URL (default: `public-api.birdeye.so`) | `https://public-api.birdeye.so` |
 | `COINMARKETCAP_API_KEY` | CoinMarketCap API key. Leave empty to disable the source. | `abc123...` |
 | `COINGECKO_PLATFORM` | Optional CoinGecko on-chain platform id (Robinhood not indexed today) | `robinhood-chain` |
+| `O1_EXCHANGE_API_KEY` | 01.exchange launchpad API key. Leave empty to disable the source. | `abc123...` |
 | `NEXT_PUBLIC_PRIVY_APP_ID` | Privy App ID for embedded wallet connections | `app_abc123...` |
 | `NEXT_PUBLIC_REOWN_PROJECT_ID` | Reown Project ID for external wallet connections | `project_abc123...` |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | WalletConnect Project ID (optional) | `wc_abc123...` |

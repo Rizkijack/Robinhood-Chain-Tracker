@@ -8,6 +8,10 @@ export interface SourceFetchOptions {
   cacheKey: string;
   ttlMs?: number;
   headers?: HeadersInit;
+  /** HTTP method (default GET). Set to "POST" for GraphQL etc. */
+  method?: string;
+  /** Request body (stringified by the caller when needed). */
+  body?: string;
 }
 
 export async function fetchJsonCached<T>(
@@ -19,6 +23,8 @@ export async function fetchJsonCached<T>(
     const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 12_000);
     try {
       const res = await fetch(url, {
+        method: options.method ?? "GET",
+        body: options.body,
         headers: {
           Accept: "application/json, text/plain, */*",
           "User-Agent": USER_AGENT,
@@ -88,7 +94,7 @@ export function buildExternalLinks(
 ): TrackedPair["links"] {
   const pair = (pairAddress || tokenAddress || "").toLowerCase();
   const token = (tokenAddress || pairAddress || "").toLowerCase();
-  return {
+  const links: TrackedPair["links"] = {
     dexscreener: pair
       ? `https://dexscreener.com/robinhood/${pair}`
       : "https://dexscreener.com/robinhood",
@@ -96,6 +102,11 @@ export function buildExternalLinks(
       ? `https://birdeye.so/token/${token}?chain=robinhood`
       : "https://birdeye.so/",
   };
+  // Launchpad tokens get a link to their platform's token page.
+  if (source === "launchpad") {
+    links.launchpad = `https://lemon.fun/token/${token}`;
+  }
+  return links;
 }
 
 export function emptyTrackedPair(

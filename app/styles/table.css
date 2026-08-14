@@ -329,6 +329,11 @@ table.pairs td {
   color: var(--src-cmc);
 }
 
+.badge-launchpad {
+  background: rgba(167, 139, 250, 0.16);
+  color: #c4b5fd;
+}
+
 /* ── Boost Indicator ─────────────────────── */
 .boost-indicator {
   display: inline-flex;

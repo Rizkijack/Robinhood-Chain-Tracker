@@ -21,6 +21,7 @@ import { ToastContainer } from "./ToastContainer";
 import { useWatchlist } from "./Watchlist";
 import { WhaleAlertPanel } from "./WhaleAlertPanel";
 import { SocialSentiment } from "./SocialSentiment";
+import { LaunchpadTable } from "./LaunchpadTable";
 import { DefiLlamaOverview } from "./DefiLlamaOverview";
 import { AdvancedFilters, applyAdvancedFilters, DEFAULT_FILTER } from "./AdvancedFilters";
 import type { AdvancedFilter } from "./AdvancedFilters";
@@ -92,7 +93,7 @@ export function TrackerApp() {
 
   // Load initial data on mount and when tab/query changes
   useEffect(() => {
-    if (tab === "portfolio" || tab === "watchlist" || tab === "whales") return;
+    if (tab === "portfolio" || tab === "watchlist" || tab === "whales" || tab === "launchpads") return;
     loadStats();
     loadFeed(tab, query);
   }, [loadFeed, loadStats, tab, query]);
@@ -101,7 +102,7 @@ export function TrackerApp() {
 
   // Polling for feed data
   useEffect(() => {
-    if (tab === "search" || tab === "portfolio" || tab === "watchlist" || tab === "whales" || !autoRefresh) return;
+    if (tab === "search" || tab === "portfolio" || tab === "watchlist" || tab === "whales" || tab === "launchpads" || !autoRefresh) return;
     const id = setInterval(() => {
       loadFeed(tab, query);
     }, refreshMs);
@@ -110,7 +111,7 @@ export function TrackerApp() {
 
   // Polling for stats
   useEffect(() => {
-    if (!autoRefresh || tab === "search" || tab === "portfolio" || tab === "watchlist" || tab === "whales") return;
+    if (!autoRefresh || tab === "search" || tab === "portfolio" || tab === "watchlist" || tab === "whales" || tab === "launchpads") return;
     const id = setInterval(() => {
       loadStats();
     }, Math.max(refreshMs, 15_000));
@@ -156,7 +157,8 @@ export function TrackerApp() {
   const isPortfolioTab = tab === "portfolio";
   const isWatchlistTab = tab === "watchlist";
   const isWhaleTab = tab === "whales";
-  const isDataTab = !isSearchTab && !isPortfolioTab && !isWatchlistTab && !isWhaleTab;
+  const isLaunchpadTab = tab === "launchpads";
+  const isDataTab = !isSearchTab && !isPortfolioTab && !isWatchlistTab && !isWhaleTab && !isLaunchpadTab;
 
   const watchlistPairs = useMemo(() => {
     if (!feed?.pairs) return [];
@@ -262,6 +264,8 @@ export function TrackerApp() {
         <ErrorBoundary>
           {isWhaleTab ? (
             <WhaleDashboard />
+          ) : isLaunchpadTab ? (
+            <LaunchpadTable />
           ) : isPortfolioTab ? (
             <WalletPortfolio onTokenSelect={(addr) => setTab("search")} />
           ) : isWatchlistTab ? (

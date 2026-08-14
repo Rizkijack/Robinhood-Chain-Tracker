@@ -20,6 +20,15 @@ import {
 import { enrichRobinhoodWithCoinGecko } from "./sources/coingecko";
 import { enrichRobinhoodWithCoinMarketCap } from "./sources/coinmarketcap";
 import { enrichRobinhoodWithDefiLlama } from "./sources/defillama";
+import {
+  fetchLaunchpadTokens,
+  launchpadRefreshMs,
+} from "./sources/launchpad";
+import type { LaunchpadFeedResponse } from "./sources/launchpad/types";
+import {
+  isGraduated,
+  launchpadTokenToTrackedPair,
+} from "./sources/launchpad/to-tracked-pair";
 import { mergeLists, mergePair } from "./merge";
 
 // ---- sort helpers ----------------------------------------------------------
@@ -211,6 +220,20 @@ export async function getTrendingFeed(): Promise<FeedResponse> {
     errors.push({ source: "defillama-enrich", message: String(e) });
   }
 
+  // Launchpads (Kombinasi): graduated tokens with a real pool join trending.
+  try {
+    const lp = await fetchLaunchpadTokens();
+    const graduated = lp.tokens
+      .filter(isGraduated)
+      .map(launchpadTokenToTrackedPair);
+    if (graduated.length) {
+      merged = mergeLists(merged, graduated);
+    }
+  } catch (e) {
+    logError("launchpad-merge", e);
+    errors.push({ source: "launchpad-merge", message: String(e) });
+  }
+
   merged = sortByVolume(merged);
 
   return {
@@ -228,6 +251,7 @@ export async function getTrendingFeed(): Promise<FeedResponse> {
       "CoinGecko price enrichment (Robinhood tokens)",
       "CoinMarketCap price enrichment (Robinhood tokens)",
       "DefiLlama price enrichment (Robinhood tokens)",
+      "Launchpads (graduated)",
     ],
     count: merged.length,
     pairs: merged,
@@ -295,5 +319,15 @@ export async function searchPairs(q: string): Promise<FeedResponse> {
     pairs,
     errors: errors.length ? errors : undefined,
     recommendedRefreshMs: recommendedClientRefreshMs(),
+  };
+}
+
+// ---- Launchpads -------------------------------------------------------------
+
+export async function getLaunchpadFeed(): Promise<LaunchpadFeedResponse> {
+  const feed = await fetchLaunchpadTokens();
+  return {
+    ...feed,
+    recommendedRefreshMs: launchpadRefreshMs(),
   };
 }

@@ -20,6 +20,7 @@ import "./styles/notifications.css";
 import "./styles/responsive.css";
 import "./styles/features.css";
 import "./styles/whale-dashboard.css";
+import "./styles/launchpad.css";
 import { WalletProviders } from "@/components/WalletProviders";
 
 // ── Font configuration ─────────────────────────────────────────
