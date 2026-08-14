@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { fetchArkhamTokenTransfers } from "@/lib/sources/arkham";
 import { fetchBlockscoutTokenTransfers } from "@/lib/sources/blockscout";
 import { addressParam } from "@/lib/validation/schemas";
 import { validateRequest } from "@/lib/validation/helpers";
@@ -13,8 +12,7 @@ export const revalidate = 0;
 /**
  * GET /api/token/[address]/transactions
  *
- * Streams recent token transfers using Arkham Intelligence as the primary
- * data source, with Blockscout as fallback.
+ * Streams recent token transfers from the Robinhood Explorer (Blockscout).
  *
  * Query params:
  *   pairAddress (optional) — used to classify buy vs sell
@@ -36,7 +34,7 @@ export const GET = withRateLimit(strictLimiter, async (
   const tokenPriceUsdRaw = req.nextUrl.searchParams.get("priceUsd") || undefined;
   const tokenSymbolRaw = req.nextUrl.searchParams.get("symbol") || undefined;
 
-  // Validate optional query params before they reach Arkham / Blockscout and
+  // Validate optional query params before they reach Blockscout and
   // are incorporated into server-side cache keys.
   let pairAddress: string | undefined;
   if (pairAddressRaw !== undefined) {
@@ -65,51 +63,21 @@ export const GET = withRateLimit(strictLimiter, async (
   const limit = Math.max(1, Math.min(Number.isFinite(limitRaw) ? limitRaw : 50, 200));
 
   try {
-    // Try Arkham Intelligence first (primary source)
-    let transactions;
-    let source = "arkham";
-
-    if (process.env.ARKHAM_API_KEY) {
-      try {
-        transactions = await fetchArkhamTokenTransfers(
-          parsed.data.address,
-          {
-            pairAddress,
-            tokenPriceUsd,
-            limit,
-          }
-        );
-      } catch (err) {
-        console.warn("[transactions] Arkham failed, falling back to Blockscout:", err);
-        source = "blockscout";
-        transactions = await fetchBlockscoutTokenTransfers(
-          parsed.data.address,
-          {
-            pairAddress,
-            tokenPriceUsd,
-            pages: 2, // Increase pages for more transactions
-          }
-        );
+    const transactions = await fetchBlockscoutTokenTransfers(
+      parsed.data.address,
+      {
+        pairAddress,
+        tokenPriceUsd,
+        pages: 2, // Increase pages for more transactions
       }
-    } else {
-      // No Arkham key — use Blockscout directly
-      source = "blockscout";
-      transactions = await fetchBlockscoutTokenTransfers(
-        parsed.data.address,
-        {
-          pairAddress,
-          tokenPriceUsd,
-          pages: 2, // Increase pages for more transactions
-        }
-      );
-    }
+    );
 
     const sliced = (transactions || []).slice(0, limit);
 
     return NextResponse.json(
       {
         transactions: sliced,
-        source,
+        source: "blockscout",
         count: sliced.length,
         updatedAt: new Date().toISOString(),
       },

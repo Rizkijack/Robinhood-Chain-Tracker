@@ -17,7 +17,6 @@ import { SocialLinks } from "./SocialLinks";
 import { useTokenTransactions } from "@/hooks/useTokenTransactions";
 import { useWatchlist, WatchlistStar } from "./Watchlist";
 import { blockscoutAddressUrl, blockscoutTxUrl } from "@/lib/sources/blockscout";
-import { arkhamAddressUrl, arkhamTxUrl } from "@/lib/sources/arkham";
 
 function Stat({
   label,
@@ -559,18 +558,10 @@ export function TokenDetailModal({
             <div className="dsection-title">
               Live Transactions
               <span className="tx-source">
-                Source: Arkham Intelligence — real-time
+                Source: Robinhood Explorer (Blockscout)
               </span>
             </div>
             <div className="tx-explorer-link-row">
-              <a
-                href={arkhamAddressUrl(address)}
-                target="_blank"
-                rel="noreferrer"
-                className="tx-explorer-link"
-              >
-                View on Arkham Intelligence ↗
-              </a>
               <a
                 href={blockscoutAddressUrl(address)}
                 target="_blank"
@@ -581,12 +572,12 @@ export function TokenDetailModal({
               </a>
               {pair.pairAddress && (
                 <a
-                  href={arkhamAddressUrl(pair.pairAddress)}
+                  href={blockscoutAddressUrl(pair.pairAddress)}
                   target="_blank"
                   rel="noreferrer"
                   className="tx-explorer-link"
                 >
-                  Pool on Arkham ↗
+                  Pool on Explorer ↗
                 </a>
               )}
             </div>
@@ -600,7 +591,7 @@ export function TokenDetailModal({
               onSetFilter={setFilter}
               onRefetch={refetch}
               tokenSymbol={token.symbol}
-              explorerUrlBuilder={arkhamTxUrl}
+              explorerUrlBuilder={blockscoutTxUrl}
             />
           </section>
         )}

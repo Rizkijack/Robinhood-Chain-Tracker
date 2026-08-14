@@ -142,17 +142,7 @@ function WhaleRow({
             </span>
           </div>
           <div className="whale-row-meta">
-            {tx.entity ? (
-              <span className="whale-entity">
-                {tx.entityLogo && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={tx.entityLogo} alt="" width={12} height={12} />
-                )}
-                {tx.entity}
-              </span>
-            ) : (
-              <span className="whale-trader">{shortAddr(tx.trader, 6, 4)}</span>
-            )}
+            <span className="whale-trader">{shortAddr(tx.trader, 6, 4)}</span>
             <span className="whale-time">{formatAge(Date.now() - tx.timestamp)} ago</span>
           </div>
         </div>

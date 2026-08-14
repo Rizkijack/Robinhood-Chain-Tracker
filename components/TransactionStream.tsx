@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import type { TokenTransaction, TransactionFilter } from "@/lib/types";
 import { shortAddr, formatUsd, formatPrice, formatAge } from "@/lib/format";
-import { arkhamTxUrl } from "@/lib/sources/arkham";
+import { blockscoutTxUrl } from "@/lib/sources/blockscout";
 
 interface TransactionStreamProps {
   transactions: TokenTransaction[];
@@ -97,7 +97,7 @@ export function TransactionStream({
     prevTxCountRef.current = transactions.length;
   }, [transactions]);
 
-  const linkFor = explorerUrlBuilder ?? arkhamTxUrl;
+  const linkFor = explorerUrlBuilder ?? blockscoutTxUrl;
 
   return (
     <section className="transaction-stream">
@@ -211,13 +211,13 @@ export function TransactionStream({
           </div>
         ) : isLoading && transactions.length === 0 ? (
           <div className="tx-loading">
-            <div className="spinner" /> Loading transactions from Arkham
-            Intelligence…
+            <div className="spinner" /> Loading transactions from Robinhood
+            Explorer…
           </div>
         ) : filteredTransactions.length === 0 ? (
           <div className="tx-empty">
             {transactions.length === 0
-              ? "No transactions yet. Waiting for live data from Arkham Intelligence…"
+              ? "No transactions yet. Waiting for live data from Robinhood Explorer…"
               : "No transactions match your filters."}
           </div>
         ) : (
@@ -300,17 +300,7 @@ function TransactionRow({
           title={tx.trader}
           onClick={() => navigator.clipboard?.writeText(tx.trader)}
         >
-          {tx.entity ? (
-            <span className="tx-entity" title={`${tx.entity} (${tx.trader})`}>
-              {tx.entityLogo && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={tx.entityLogo} alt="" className="tx-entity-logo" width={14} height={14} />
-              )}
-              {tx.entity}
-            </span>
-          ) : (
-            shortAddr(tx.trader, 6, 4)
-          )}
+          {shortAddr(tx.trader, 6, 4)}
         </span>
         {tx.isMegaWhale && <span className="whale-tag mega">🐳 Mega</span>}
         {!tx.isMegaWhale && tx.isWhale && (
@@ -337,7 +327,7 @@ function TransactionRow({
           target="_blank"
           rel="noreferrer"
           className="tx-explorer-link"
-          title="View on Arkham Intelligence"
+          title="View on Robinhood Explorer"
         >
           ↗
         </a>

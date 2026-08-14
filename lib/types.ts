@@ -199,13 +199,13 @@ export interface TokenTransaction {
   isWhale?: boolean;
   /** Whether this is a mega whale transaction (auto-calculated: usdValue > 50000) */
   isMegaWhale?: boolean;
-  /** Token contract address (optional, populated by Arkham source) */
+  /** Token contract address (optional) */
   tokenAddress?: string;
   /** Chain identifier (optional, e.g. "robinhood") */
   chain?: string;
-  /** Entity/label from Arkham Intelligence (optional) */
+  /** Entity/label (optional) */
   entity?: string;
-  /** Arkham entity logo URL (optional) */
+  /** Entity logo URL (optional) */
   entityLogo?: string;
 }
 
@@ -222,22 +222,6 @@ export interface TransactionFilter {
 }
 
 // ── Whale Tracking Types ──────────────────────────────────────────
-
-/** Time-bucketed whale flow data for chart visualization */
-export interface WhaleFlowData {
-  /** Time bucket (unix ms) */
-  timestamp: number;
-  /** Total USD inflow (buys) */
-  inflowUsd: number;
-  /** Total USD outflow (sells) */
-  outflowUsd: number;
-  /** Net flow (inflow - outflow) */
-  netFlowUsd: number;
-  /** Number of whale transactions in bucket */
-  txCount: number;
-  /** Top tokens involved */
-  topTokens: { symbol: string; volumeUsd: number }[];
-}
 
 /** A watched whale wallet */
 export interface WhaleWallet {

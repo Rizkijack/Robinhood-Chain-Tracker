@@ -44,7 +44,7 @@ export const WHALE_THRESHOLD_USD = 10_000;
 /** Minimum USD value to classify a transaction as "mega whale" */
 export const MEGA_WHALE_THRESHOLD_USD = 50_000;
 
-/** Server-side cache TTL for transaction data (Arkham / Blockscout). */
+/** Server-side cache TTL for transaction data (Blockscout). */
 export const TX_CACHE_TTL_MS = 3_000;
 
 /** Server-side cache TTL for GeckoTerminal transaction lookups. */
@@ -69,7 +69,7 @@ export const API_RATE_LIMIT_MAX = 60;
 /** Stricter rate limiter for search & token detail. */
 export const STRICT_RATE_LIMIT_MAX = 30;
 
-/** Whale alerts rate limiter (heavy Arkham endpoint). */
+/** Whale alerts rate limiter (heavy explorer scans). */
 export const WHALE_RATE_LIMIT_MAX = 10;
 
 /** Sliding window duration for rate limiters (ms). */
@@ -99,7 +99,6 @@ export const SOURCE_TIMING: Record<string, SourceTiming> = {
   geckoterminal: { cacheTtlMs: 30_000, refreshMs: 30_000 },
   coingecko: { cacheTtlMs: 60_000, refreshMs: 60_000 },
   coinmarketcap: { cacheTtlMs: 300_000, refreshMs: 300_000, requiresApiKey: true, apiKeyEnv: "COINMARKETCAP_API_KEY" },
-  arkham: { cacheTtlMs: 8_000, refreshMs: 5_000, requiresApiKey: true, apiKeyEnv: "ARKHAM_API_KEY" },
   defillama: { cacheTtlMs: 20_000, refreshMs: 15_000 },
 };
 

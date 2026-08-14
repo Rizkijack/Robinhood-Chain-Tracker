@@ -3,9 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useWhaleStore, useNotificationStore } from "@/lib/store";
 import { WhaleFeed } from "./WhaleFeed";
-import { WhaleFlowChart } from "./WhaleFlowChart";
 import { WhaleWalletTracker } from "./WhaleWalletTracker";
-import { WhaleEntityProfile } from "./WhaleEntityProfile";
 import { WhaleNotificationCenter } from "./WhaleNotificationCenter";
 
 const POLL_INTERVAL = 15_000; // 15s
@@ -15,12 +13,7 @@ export function WhaleDashboard() {
     transactions,
     txLoading,
     txError,
-    flowData,
-    flowLoading,
-    activeEntity,
-    setActiveEntity,
     fetchTransactions,
-    fetchFlowData,
     alertConfigs,
   } = useWhaleStore();
 
@@ -30,16 +23,13 @@ export function WhaleDashboard() {
   // Polling for whale transactions
   useEffect(() => {
     fetchTransactions();
-    fetchFlowData();
 
     const txInterval = setInterval(fetchTransactions, POLL_INTERVAL);
-    const flowInterval = setInterval(fetchFlowData, 60_000); // flow every 60s
 
     return () => {
       clearInterval(txInterval);
-      clearInterval(flowInterval);
     };
-  }, [fetchTransactions, fetchFlowData]);
+  }, [fetchTransactions]);
 
   // Whale alert notifications
   useEffect(() => {
@@ -54,7 +44,6 @@ export function WhaleDashboard() {
       if (!config.enabled) continue;
       if (latest.usdValue < config.minUsd) continue;
       if (config.type !== "all" && latest.type !== config.type) continue;
-      if (config.entityName && latest.entity !== config.entityName) continue;
       if (config.tokenAddress && latest.tokenAddress !== config.tokenAddress) continue;
 
       const entityLabel = latest.entity || "Unknown";
@@ -95,20 +84,7 @@ export function WhaleDashboard() {
           isLoading={txLoading}
           error={txError}
           onRefresh={fetchTransactions}
-          onSelectEntity={setActiveEntity}
         />
-      </div>
-
-      {/* Center column: Flow Chart + Entity Profile */}
-      <div className="whale-dashboard-center">
-        <WhaleFlowChart flowData={flowData} isLoading={flowLoading} />
-
-        {activeEntity && (
-          <WhaleEntityProfile
-            entityName={activeEntity}
-            onClose={() => setActiveEntity(null)}
-          />
-        )}
       </div>
 
       {/* Right column: Wallet Tracker + Alert Settings */}

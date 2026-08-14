@@ -42,8 +42,8 @@ export function WhaleWalletTracker({ onWalletSelect }: WhaleWalletTrackerProps) 
       const wallet: WhaleWallet = {
         address: addr,
         label: shortAddr(addr, 6, 4),
-        entity: lastTx?.entity || null,
-        entityLogo: lastTx?.entityLogo || null,
+        entity: null,
+        entityLogo: null,
         totalValueUsd: totalValue,
         lastActive: lastTx?.timestamp || Date.now(),
         txCount24h: txs.length,
@@ -142,10 +142,6 @@ export function WhaleWalletTracker({ onWalletSelect }: WhaleWalletTrackerProps) 
               >
                 <div className="whale-wallet-card-info">
                   <div className="whale-wallet-card-name">
-                    {wallet.entityLogo && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={wallet.entityLogo} alt="" width={16} height={16} />
-                    )}
                     <span>{wallet.entity || wallet.label}</span>
                   </div>
                   <div className="whale-wallet-card-meta">

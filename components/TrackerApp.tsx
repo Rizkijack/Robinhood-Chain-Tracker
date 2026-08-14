@@ -8,7 +8,6 @@ import { useFeedStore, useFilterStore, useUiStore } from "@/lib/store";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useWhaleAlerts } from "@/hooks/useWhaleAlerts";
 import { usePriceAlerts } from "@/hooks/usePriceAlerts";
-import { useEntityActivity } from "@/components/EntityHeatmap";
 import { generateMockSentiment } from "@/components/SocialSentiment";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { SkeletonTable, SkeletonStatCard } from "./Skeleton";
@@ -21,7 +20,6 @@ import { PairTable } from "./PairTable";
 import { ToastContainer } from "./ToastContainer";
 import { useWatchlist } from "./Watchlist";
 import { WhaleAlertPanel } from "./WhaleAlertPanel";
-import { EntityHeatmap } from "./EntityHeatmap";
 import { SocialSentiment } from "./SocialSentiment";
 import { DefiLlamaOverview } from "./DefiLlamaOverview";
 import { AdvancedFilters, applyAdvancedFilters, DEFAULT_FILTER } from "./AdvancedFilters";
@@ -62,7 +60,6 @@ export function TrackerApp() {
   // Feature hooks
   const { whales, isLoading: whalesLoading, error: whaleError, refetch: refetchWhales } = useWhaleAlerts();
   const { alerts: priceAlerts, dismissAlert } = usePriceAlerts();
-  const { entities, isLoading: entitiesLoading } = useEntityActivity();
   const sentimentItems = useMemo(() => generateMockSentiment(), []);
 
   // Advanced filters state
@@ -295,12 +292,9 @@ export function TrackerApp() {
           </ErrorBoundary>
         )}
 
-        {/* Bottom panels: Entity Heatmap + Social Sentiment */}
+        {/* Bottom panel: Social Sentiment */}
         {isDataTab && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--sp-4)", marginTop: "var(--sp-4)" }}>
-            <ErrorBoundary>
-              <EntityHeatmap entities={entities} isLoading={entitiesLoading} />
-            </ErrorBoundary>
+          <div style={{ marginTop: "var(--sp-4)" }}>
             <ErrorBoundary>
               <SocialSentiment items={sentimentItems} />
             </ErrorBoundary>

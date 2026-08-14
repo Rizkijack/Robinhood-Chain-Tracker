@@ -9,7 +9,6 @@ interface WhaleFeedProps {
   isLoading: boolean;
   error: string | null;
   onRefresh: () => void;
-  onSelectEntity?: (name: string) => void;
   onSelectToken?: (address: string) => void;
 }
 
@@ -29,7 +28,6 @@ export function WhaleFeed({
   isLoading,
   error,
   onRefresh,
-  onSelectEntity,
   onSelectToken,
 }: WhaleFeedProps) {
   const [typeFilter, setTypeFilter] = useState<FilterType>("all");
@@ -143,7 +141,6 @@ export function WhaleFeed({
             <WhaleFeedRow
               key={tx.hash}
               tx={tx}
-              onSelectEntity={onSelectEntity}
               onSelectToken={onSelectToken}
             />
           ))}
@@ -165,11 +162,9 @@ export function WhaleFeed({
 
 function WhaleFeedRow({
   tx,
-  onSelectEntity,
   onSelectToken,
 }: {
   tx: WhaleTransaction;
-  onSelectEntity?: (name: string) => void;
   onSelectToken?: (address: string) => void;
 }) {
   const typeClass =
@@ -204,21 +199,7 @@ function WhaleFeedRow({
             {isMega && !isUltra && <span className="whale-badge-mega">🐳</span>}
           </div>
           <div className="whale-feed-row-meta">
-            {tx.entity ? (
-              <span
-                className="whale-entity clickable"
-                onClick={() => onSelectEntity?.(tx.entity!)}
-                role="button"
-              >
-                {tx.entityLogo && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={tx.entityLogo} alt="" width={12} height={12} />
-                )}
-                {tx.entity}
-              </span>
-            ) : (
-              <span className="whale-trader">{shortAddr(tx.trader, 6, 4)}</span>
-            )}
+            <span className="whale-trader">{shortAddr(tx.trader, 6, 4)}</span>
             <span className="whale-time">{formatAge(Date.now() - tx.timestamp)} ago</span>
           </div>
         </div>

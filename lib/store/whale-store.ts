@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { WhaleFlowData, WhaleWallet, WhaleAlertConfig, WhaleTransaction } from "../types";
+import type { WhaleWallet, WhaleAlertConfig, WhaleTransaction } from "../types";
 
 interface WhaleState {
   // Whale transactions
@@ -8,25 +8,17 @@ interface WhaleState {
   txLoading: boolean;
   txError: string | null;
 
-  // Flow analytics
-  flowData: WhaleFlowData[];
-  flowLoading: boolean;
-
   // Watched wallets (persisted)
   watchedWallets: WhaleWallet[];
 
   // Alert configs (persisted)
   alertConfigs: WhaleAlertConfig[];
 
-  // Active entity detail
-  activeEntity: string | null;
-
   // Wallet detail view
   activeWallet: string | null;
 
   // Actions
   fetchTransactions: () => Promise<void>;
-  fetchFlowData: () => Promise<void>;
   fetchWalletActivity: (address: string) => Promise<WhaleTransaction[]>;
   addWatchedWallet: (wallet: WhaleWallet) => void;
   removeWatchedWallet: (address: string) => void;
@@ -34,7 +26,6 @@ interface WhaleState {
   addAlertConfig: (config: WhaleAlertConfig) => void;
   updateAlertConfig: (id: string, updates: Partial<WhaleAlertConfig>) => void;
   removeAlertConfig: (id: string) => void;
-  setActiveEntity: (name: string | null) => void;
   setActiveWallet: (address: string | null) => void;
 }
 
@@ -55,11 +46,8 @@ export const useWhaleStore = create<WhaleState>()(
       transactions: [],
       txLoading: false,
       txError: null,
-      flowData: [],
-      flowLoading: false,
       watchedWallets: [],
       alertConfigs: [DEFAULT_ALERT],
-      activeEntity: null,
       activeWallet: null,
 
       // --- fetch whale transactions ---
@@ -77,20 +65,6 @@ export const useWhaleStore = create<WhaleState>()(
           set({ txError: String(e) });
         } finally {
           set({ txLoading: false });
-        }
-      },
-
-      // --- fetch flow analytics ---
-      fetchFlowData: async () => {
-        set({ flowLoading: true });
-        try {
-          const res = await fetch("/api/whales/flow");
-          const data = await res.json();
-          set({ flowData: data.flowData || [] });
-        } catch {
-          // silent — flow data is non-critical
-        } finally {
-          set({ flowLoading: false });
         }
       },
 
@@ -141,7 +115,6 @@ export const useWhaleStore = create<WhaleState>()(
         })),
 
       // --- active views ---
-      setActiveEntity: (name) => set({ activeEntity: name }),
       setActiveWallet: (address) => set({ activeWallet: address }),
     }),
     {

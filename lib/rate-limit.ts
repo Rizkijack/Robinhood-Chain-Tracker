@@ -142,7 +142,7 @@ export const apiLimiter: IRateLimiter = _apiLimiter;
 /** Stricter limiter for search & token detail (30 req/min). */
 export const strictLimiter: IRateLimiter = _strictLimiter;
 
-/** Whale alerts limiter — 10 req/min (heavy Arkham endpoint). */
+/** Whale alerts limiter — 10 req/min (heavy explorer scans). */
 export const whaleLimiter: IRateLimiter = _whaleLimiter;
 
 // In-memory pruner (only active when not using Redis — serverless instances
