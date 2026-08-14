@@ -3,21 +3,28 @@
  *
  * Architecture (important):
  *   - `refreshOnchainIndex()` runs the indexer (chunked eth_getLogs
- *     scans) and STORES the resulting tokens in Redis. Called ONLY from
- *     the cron endpoint (`/api/cron/refresh?feed=launchpads`), never
- *     from the request path — a full backfill is far too slow for a
- *     serverless request.
+ *     scans of NEW blocks only, from the stored cursor), MERGES the
+ *     result with the existing index in Redis, applies the market-cap
+ *     filter (≥ $10k), and persists. Called from the cron endpoint
+ *     (`/api/cron/refresh?feed=launchpads`) — never from the request
+ *     path. The cron runs DAILY (Vercel Hobby limit), so the index is
+ *     rebuilt once/day and must survive the 24h gap via the longer TTL.
  *   - `getOnchainTokens()` reads the stored index from Redis. Returns []
- *     when the index hasn't been built yet (first deploy before the
- *     first cron run). Cheap enough for request paths.
+ *     when the index hasn't been built yet. Cheap for request paths.
+ *   - The initial 7-day backfill is done once via
+ *     `scripts/launchpad-backfill.mjs` (local), which writes the cursors
+ *     and the seed index. The cron then only advances the cursors.
  */
 
 import { cacheGet, cacheSet } from "../../../cache";
-import { fetchOnchainLaunches, resolveLaunchTimestamps } from "./indexer";
+import { fetchOnchainLaunches, filterByMarketCap, resolveLaunchTimestamps } from "./indexer";
 import type { LaunchpadToken } from "../types";
 
 const INDEX_KEY = "launchpad:onchain:index";
-const INDEX_TTL_S = 60 * 60 * 6; // 6 hours — refreshed by cron every 5 min
+// 48 hours — the cron is DAILY on Vercel Hobby; each rebuild rewrites the
+// index and extends the TTL, so 48h gives a full day of buffer if a run is
+// missed or fails before the next run can refresh it.
+const INDEX_TTL_S = 60 * 60 * 48;
 
 /** Read the pre-built on-chain index (fast, request-path safe). */
 export async function getOnchainTokens(): Promise<LaunchpadToken[]> {
@@ -26,16 +33,40 @@ export async function getOnchainTokens(): Promise<LaunchpadToken[]> {
 }
 
 /**
- * Run the indexer and persist the result. Called by the cron.
- * Returns the fresh token list (or [] on RPC failure).
+ * Run the indexer (scan new blocks since cursor), merge with the stored
+ * index, apply the market-cap filter, and persist. Called by the cron.
+ * Returns the fresh token list (or [] on total failure).
  */
 export async function refreshOnchainIndex(): Promise<LaunchpadToken[]> {
-  const { tokens, errors } = await fetchOnchainLaunches();
+  const { tokens: fresh, errors } = await fetchOnchainLaunches();
   if (errors.length) {
     console.warn("[launchpad:onchain] platform errors:", errors);
   }
-  const withTs = await resolveLaunchTimestamps(tokens);
-  const trimmed = withTs.slice(0, 200);
+
+  if (fresh.length === 0 && errors.length > 0) {
+    // Total scan failure — never wipe the index. Keep the last good
+    // snapshot and extend its TTL so a transient RPC outage doesn't
+    // expire the index before the next cron run.
+    const existing = await getOnchainTokens();
+    if (existing.length) await cacheSet(INDEX_KEY, existing, INDEX_TTL_S * 1000);
+    return existing;
+  }
+
+  // Merge fresh tokens with the stored index (dedupe by token address,
+  // prefer the fresh entry so launch metadata stays current).
+  const existing = await getOnchainTokens();
+  const byAddress = new Map<string, LaunchpadToken>();
+  for (const t of existing) byAddress.set(t.tokenAddress, t);
+  for (const t of fresh) byAddress.set(t.tokenAddress, t);
+
+  const merged = [...byAddress.values()];
+  const withTs = await resolveLaunchTimestamps(merged);
+
+  // Market-cap filter across the WHOLE index (seed backfill included):
+  // tokens that never reached ≥ $10k are dropped.
+  const filtered = await filterByMarketCap(withTs, errors);
+  const trimmed = filtered.slice(0, 500); // cap: 500 tracked tokens max
+
   await cacheSet(INDEX_KEY, trimmed, INDEX_TTL_S * 1000);
   return trimmed;
 }

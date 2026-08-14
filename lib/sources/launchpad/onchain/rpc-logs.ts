@@ -12,7 +12,11 @@ import { robinhoodViemChain, ROBINHOOD_RPC_URL } from "../../../chains";
 import { getLastScannedBlock } from "./store";
 import type { LaunchpadSourceId } from "../types";
 
-const CHUNK_SIZE = 2_000;
+// Chunk size: tested against the public RPC — ~100k-block chunks with
+// ~2k logs return in ~3.5s. Larger ranges with many logs fail with
+// "Missing or invalid parameters" (response too large), so 100k is the
+// sweet spot for the 30s serverless budget.
+const CHUNK_SIZE = 100_000;
 const MAX_RETRIES = 3;
 const BASE_BACKOFF_MS = 800;
 

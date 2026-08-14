@@ -71,6 +71,12 @@ export interface OnchainPlatformConfig {
   deployBlock: number;
   /** Derive a LaunchpadToken from decoded event args + block number. */
   toToken: (args: Record<string, unknown>, blockNumber: number) => LaunchpadToken | null;
+  /**
+   * Whether the cron/backfill actually scans this platform.
+   * Disabled platforms stay in the registry (UI/labels) but are skipped
+   * by the indexer.
+   */
+  scanEnabled?: boolean;
 }
 
 /** Shared "first deploy block" lower bound for Robinhood launchpads. */
@@ -194,6 +200,7 @@ export const ONCHAIN_PLATFORMS: OnchainPlatformConfig[] = [
     event: EVENT_ABIS.TokenLaunchedPons,
     deployBlock: 8_991_118,
     toToken: ponsV1Token,
+    scanEnabled: true,
   },
   {
     id: "ponsv2",
@@ -201,6 +208,8 @@ export const ONCHAIN_PLATFORMS: OnchainPlatformConfig[] = [
     event: EVENT_ABIS.TokenLaunchedV2,
     deployBlock: RH_LAUNCHPAD_DEPLOY_LOWER_BOUND,
     toToken: ponsV2Token,
+    // Disabled: brand-new factory, low historical volume; revisit later.
+    scanEnabled: false,
   },
   {
     id: "flap",
@@ -208,6 +217,7 @@ export const ONCHAIN_PLATFORMS: OnchainPlatformConfig[] = [
     event: EVENT_ABIS.TokenCreatedFlap,
     deployBlock: RH_LAUNCHPAD_DEPLOY_LOWER_BOUND,
     toToken: flapToken,
+    scanEnabled: true,
   },
   {
     id: "trench",
@@ -215,6 +225,7 @@ export const ONCHAIN_PLATFORMS: OnchainPlatformConfig[] = [
     event: EVENT_ABIS.TokenCreateTrench,
     deployBlock: RH_LAUNCHPAD_DEPLOY_LOWER_BOUND,
     toToken: trenchToken,
+    scanEnabled: true,
   },
   {
     id: "bow",
@@ -222,6 +233,7 @@ export const ONCHAIN_PLATFORMS: OnchainPlatformConfig[] = [
     event: EVENT_ABIS.LaunchedBow,
     deployBlock: RH_LAUNCHPAD_DEPLOY_LOWER_BOUND,
     toToken: bowToken,
+    scanEnabled: true,
   },
   {
     id: "bags",
@@ -229,8 +241,14 @@ export const ONCHAIN_PLATFORMS: OnchainPlatformConfig[] = [
     event: EVENT_ABIS.TokenCreatedBags,
     deployBlock: 7_887_312,
     toToken: bagsToken,
+    scanEnabled: true,
   },
 ];
+
+/** Platforms the indexer actually scans (scanEnabled !== false). */
+export function enabledOnchainPlatforms(): OnchainPlatformConfig[] {
+  return ONCHAIN_PLATFORMS.filter((p) => p.scanEnabled !== false);
+}
 
 export function onchainPlatform(id: LaunchpadSourceId): OnchainPlatformConfig | undefined {
   return ONCHAIN_PLATFORMS.find((p) => p.id === id);

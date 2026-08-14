@@ -34,36 +34,42 @@ const PLATFORMS = [
     factory: "0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB",
     event: "event TokenLaunched(address indexed token, address indexed deployer, address indexed dexFactory, address pairToken, address pool, uint256 dexId, uint256 launchConfigId, uint256 positionId, uint256 restrictionsEndBlock, uint256 initialBuyAmount)",
     deployBlock: 8991118,
+    enabled: true,
   },
   {
     id: "ponsv2",
     factory: "0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e",
     event: "event TokenLaunched(address indexed token, address indexed deployer)",
     deployBlock: 7500000,
+    enabled: false, // skipped — brand-new factory, revisit later
   },
   {
     id: "flap",
     factory: "0x26605f322f7fF986f381bB9A6e3f5DAb0bEaEb09",
     event: "event TokenCreated(address indexed token, address indexed creator)",
     deployBlock: 7500000,
+    enabled: true,
   },
   {
     id: "trench",
     factory: "0x77dC6f6361b7b99456FC3761ce5b7ddA80d83f9d",
     event: "event TokenCreate(address indexed creator, address curve, address token, address quote, string name, string symbol, uint256 timestamp, string tokenURI)",
     deployBlock: 7500000,
+    enabled: true,
   },
   {
     id: "bow",
     factory: "0x229Faa919ABf14279E2461Dba53F039c5B4C7E29",
     event: "event Launched(address indexed token, address indexed deployer, uint8 indexed version, uint8 slotId, address pool, bytes32 poolId, uint256 positionId, uint256 launchId)",
     deployBlock: 7500000,
+    enabled: true,
   },
   {
     id: "bags",
     factory: "0xe8Cc4431adF8b5A847C113EF0c6af9043219Cb37",
     event: "event TokenCreated(address indexed token, address indexed creator)",
     deployBlock: 7887312,
+    enabled: true,
   },
 ];
 
@@ -73,8 +79,12 @@ const arg = (name) => {
   return hit ? hit.split("=")[1] : undefined;
 };
 const platformFilter = arg("platform");
-const chunkSize = Number(arg("chunk") || 2000);
+const chunkSize = Number(arg("chunk") || 100000);
 const dryRun = args.includes("--dry-run");
+
+// ~7 days of blocks at ~0.1s/block (measured). Start scan there, not at
+// the deploy block — we only track recent launches.
+const LOOKBACK_BLOCKS = 6_000_000;
 
 const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
 const PREFIX = "rh:lp:onchain:";
@@ -111,13 +121,15 @@ async function rpcCall(fn) {
 
 async function scanPlatform(p) {
   const stored = redis ? await redis.get(`${PREFIX}${p.id}`) : null;
-  let from = Number(stored) || p.deployBlock;
   const head = Number(await rpcCall(() => client.getBlockNumber()));
+  // No cursor yet → start ~7 days back (not the deploy block).
+  const lookbackStart = Math.max(p.deployBlock, head - LOOKBACK_BLOCKS);
+  let from = Number(stored) || lookbackStart;
   let to = head;
 
   log(`\n=== ${p.id} ===`);
   log(`  factory:     ${p.factory}`);
-  log(`  from:        ${from} (deploy ${p.deployBlock})`);
+  log(`  from:        ${from} (deploy ${p.deployBlock}, lookback start ${lookbackStart})`);
   log(`  to:          ${to} (head)`);
   log(`  blocks:      ${to - from} (${chunkSize}/chunk → ${Math.ceil((to - from) / chunkSize)} calls)`);
 
@@ -180,7 +192,13 @@ async function main() {
   log(`RPC: ${RPC}`);
   log(`Chunk: ${chunkSize} | Dry-run: ${dryRun}`);
 
-  const targets = PLATFORMS.filter((p) => !platformFilter || p.id === platformFilter);
+  const targets = PLATFORMS.filter(
+    (p) => p.enabled !== false && (!platformFilter || p.id === platformFilter)
+  );
+  if (!targets.length) {
+    log("No enabled platforms to scan (platform filter matches none).");
+    return;
+  }
   const results = [];
   const allTokens = new Map();
 
@@ -188,7 +206,9 @@ async function main() {
     const r = await scanPlatform(p);
     results.push(r);
     for (const t of r.tokens) {
-      if (!allTokens.has(t.token)) allTokens.set(t.token, t);
+      // Tag each token with its platform for the index write.
+      const tagged = { ...t, platform: p.id };
+      if (!allTokens.has(t.token)) allTokens.set(t.token, tagged);
     }
   }
 
@@ -208,14 +228,40 @@ async function main() {
     await redis.set(`${PREFIX}${r.platform}`, r.cursor, { ex: 60 * 60 * 24 * 30 });
     log(`  cursor ${r.platform} → ${r.cursor}`);
   }
-  const index = [...allTokens.values()].map((t) => ({
-    id: t.token,
-    platform: t.platform || "unknown",
-    tokenAddress: t.token,
-    block: t.block,
+  // Write a full LaunchpadToken-shaped index so getOnchainTokens() can
+  // read it directly. Fields that need on-chain lookups (name, symbol,
+  // price, mcap) are filled later by refreshOnchainIndex (cron).
+  const index = [...allTokens.entries()].map(([addr, t]) => ({
+    id: `${t.platform}:${addr}`,
+    platform: t.platform,
+    platformName: t.platform,
+    tokenAddress: addr,
+    pairAddress: null,
+    name: "Unknown",
+    symbol: "???",
+    phase: "graduated",
+    priceUsd: null,
+    fdvUsd: null,
+    marketCapUsd: null,
+    liquidityUsd: null,
+    volume24hUsd: null,
+    launchTimeMs: null,
+    ageMs: null,
+    launchBlock: t.block,
+    imageUrl: null,
+    description: null,
+    socials: [],
+    graduationProgressPct: null,
+    thresholdQuote: null,
+    devBuyUsd: null,
+    holders: null,
+    feeSplit: null,
+    taxRateBps: null,
+    lockedLiquidity: true,
+    quoteSymbol: null,
   }));
   await redis.set(INDEX_KEY, index, { ex: 60 * 60 * 6 });
-  log(`  index stored: ${index.length} tokens (TTL 6h — cron will refresh)`);
+  log(`  index stored: ${index.length} tokens (TTL 6h — cron will refresh & filter)`);
   log("\nDone. Vercel cron will now keep the index fresh.");
 }
 
