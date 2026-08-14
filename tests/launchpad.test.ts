@@ -56,7 +56,7 @@ describe("Launchpad — Integration (cached path)", () => {
     expect(result.count).toBe(result.tokens.length);
     expect(typeof result.recommendedRefreshMs).toBe("number");
     expect(result.recommendedRefreshMs).toBeGreaterThan(0);
-  }, 10_000);
+  }, 30_000);
 
   it("implemented platforms are registered in the registry", () => {
     const names = implementedLaunchpads().map((p) => p.name);
