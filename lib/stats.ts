@@ -10,7 +10,7 @@ import {
 import {
   fetchGeckoNewPools,
 } from "./sources/geckoterminal";
-import { fetchLaunchpadTokens } from "./sources/launchpad";
+import { getCachedLaunchpadTokens } from "./sources/launchpad";
 
 /**
  * Aggregate stats from all sources — counts and key metrics
@@ -22,7 +22,7 @@ export async function getStats(): Promise<StatsResponse> {
     fetchDexBoosts(),
     fetchBirdeyeNewListings(20),
     fetchGeckoNewPools(20),
-    fetchLaunchpadTokens(),
+    getCachedLaunchpadTokens(),
   ]);
 
   const profilesCount = profiles.status === "fulfilled" ? profiles.value.length : 0;
@@ -30,7 +30,7 @@ export async function getStats(): Promise<StatsResponse> {
   const newPairsCount = beNew.status === "fulfilled" ? beNew.value.length : 0;
   const geoCount = geoNew.status === "fulfilled" ? geoNew.value.length : 0;
   const launchpadCount =
-    launchpads.status === "fulfilled" ? launchpads.value.count : 0;
+    launchpads.status === "fulfilled" ? launchpads.value.length : 0;
 
   // Compute keyMetrics across all successful fetches
   const allPairs: TrackedPair[] = [];

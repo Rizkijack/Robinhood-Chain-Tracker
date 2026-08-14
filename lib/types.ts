@@ -182,6 +182,10 @@ export interface TokenTransaction {
   type: 'buy' | 'sell' | 'transfer' | 'mint' | 'burn';
   /** Trader wallet address */
   trader: string;
+  /** Raw sender address of the ERC-20 transfer (lowercase, optional) */
+  from?: string;
+  /** Raw recipient address of the ERC-20 transfer (lowercase, optional) */
+  to?: string;
   /** Token amount traded */
   tokenAmount: number;
   /** Token symbol */

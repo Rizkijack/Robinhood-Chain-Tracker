@@ -93,11 +93,14 @@ function mapSushiToken(raw: SushiRawToken): LaunchpadToken | null {
     volume24hUsd: parseMaybeNumber(raw.volume?.h24 ?? raw.volume?.h12 ?? raw.volume?.h6 ?? raw.volume?.h1),
     launchTimeMs,
     ageMs: launchTimeMs != null ? Date.now() - launchTimeMs : null,
+    launchBlock: null,
     imageUrl: raw.logo || raw.imageUrl || raw.token?.imageUrl || null,
     description: raw.description || null,
-    socials: (raw.socials || [])
-      .map((s) => ({ type: s.type || "link", url: s.url || "" }))
-      .filter((s) => s.url),
+    socials: Array.isArray(raw.socials)
+      ? raw.socials
+          .map((s) => ({ type: s.type || "link", url: s.url || "" }))
+          .filter((s) => s.url)
+      : [],
     graduationProgressPct: null,
     thresholdQuote: null,
     devBuyUsd: null,

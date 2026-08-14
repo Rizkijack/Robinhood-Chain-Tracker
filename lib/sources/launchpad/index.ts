@@ -10,10 +10,12 @@
  * `[]` + an entry in `errors`.
  */
 
-import { CHAIN, SOURCE_TIMING, recommendedClientRefreshMs } from "../../constants";
+import { CHAIN, SOURCE_TIMING } from "../../constants";
+import { cacheGet } from "../../cache";
 import { fetchBankrTokens } from "./bankr";
 import { fetchLemonTokens } from "./lemon";
 import { fetchO1ExchangeTokens } from "./o1exchange";
+import { getOnchainTokens } from "./onchain";
 import { fetchPoolsTradeTokens } from "./poolstrade";
 import { implementedLaunchpads } from "./registry";
 import { fetchSushiLaunchpadTokens } from "./sushi";
@@ -21,13 +23,14 @@ import type { LaunchpadFeedResponse, LaunchpadToken } from "./types";
 
 type Fetcher = () => Promise<LaunchpadToken[]>;
 
-/** Ordered list of Phase-1 adapters. */
+/** Ordered list of enabled adapters (Phase 1 REST + Phase 2 on-chain). */
 const ADAPTERS: { id: string; fetch: Fetcher }[] = [
   { id: "lemon", fetch: () => fetchLemonTokens(200) },
   { id: "bankr", fetch: () => fetchBankrTokens() },
   { id: "poolstrade", fetch: () => fetchPoolsTradeTokens() },
   { id: "sushi", fetch: () => fetchSushiLaunchpadTokens() },
   { id: "o1exchange", fetch: () => fetchO1ExchangeTokens(100) },
+  { id: "onchain", fetch: () => getOnchainTokens() },
 ];
 
 /** Merge two entries for the same token address — prefer `graduated`. */
@@ -90,7 +93,7 @@ export async function fetchLaunchpadTokens(): Promise<LaunchpadFeedResponse> {
     count: tokens.length,
     tokens,
     errors: errors.length ? errors : undefined,
-    recommendedRefreshMs: recommendedClientRefreshMs(),
+    recommendedRefreshMs: launchpadRefreshMs(),
   };
 }
 
@@ -101,4 +104,37 @@ export function launchpadRefreshMs(): number {
     .filter(Boolean)
     .map((t) => t.refreshMs);
   return enabled.length ? Math.min(...enabled) : 12_000;
+}
+
+/**
+ * Cached-only launchpad tokens — reads the on-chain index from Redis
+ * plus any REST results still in the shared cache. NEVER fetches live
+ * APIs. Used by the trending feed merge so it stays fast even when an
+ * external launchpad API is slow or down. Returns [] when nothing is
+ * cached yet (e.g. before the first cron run).
+ */
+export async function getCachedLaunchpadTokens(): Promise<LaunchpadToken[]> {
+  const [onchain, lemon, bankr, poolstrade, sushi, o1] = await Promise.allSettled([
+    getOnchainTokens(),
+    cacheGet<LaunchpadToken[]>("launchpad:lemon:200"),
+    cacheGet<LaunchpadToken[]>("launchpad:bankr"),
+    cacheGet<LaunchpadToken[]>("launchpad:poolstrade"),
+    cacheGet<LaunchpadToken[]>("launchpad:sushi:4663"),
+    cacheGet<LaunchpadToken[]>("launchpad:o1exchange:100"),
+  ]);
+
+  const lists = [onchain, lemon, bankr, poolstrade, sushi, o1]
+    .filter((r): r is PromiseFulfilledResult<LaunchpadToken[]> => r.status === "fulfilled" && !!r.value)
+    .map((r) => r.value);
+
+  const byAddress = new Map<string, LaunchpadToken>();
+  for (const list of lists) {
+    for (const t of list) {
+      const prev = byAddress.get(t.tokenAddress);
+      byAddress.set(t.tokenAddress, prev ? mergeTokens(prev, t) : t);
+    }
+  }
+  return [...byAddress.values()].sort(
+    (a, b) => (b.launchTimeMs ?? 0) - (a.launchTimeMs ?? 0)
+  );
 }

@@ -34,13 +34,14 @@ export const LAUNCHPAD_SOURCES: LaunchpadPlatformInfo[] = [
     requiresApiKey: true,
     apiKeyEnv: "O1_EXCHANGE_API_KEY",
   },
-  // ── Phase 2 (reserved, not yet implemented) ──────────────────
-  { id: "pons", name: "Pons", url: "https://ponsfamily.com", implemented: false },
-  { id: "ponsv2", name: "Pons V2", url: "https://ponsfamily.com", implemented: false },
-  { id: "flap", name: "Flap", url: "https://flap.sh", implemented: false },
-  { id: "trench", name: "Trench", url: "https://trench.today", implemented: false },
-  { id: "bow", name: "Bow", url: "https://bow.fun", implemented: false },
-  { id: "bags", name: "Bags", url: "https://bags.fm", implemented: false },
+  // ── Phase 2 (on-chain indexer, implemented) ─────────────────
+  { id: "pons", name: "Pons", url: "https://ponsfamily.com", implemented: true },
+  { id: "ponsv2", name: "Pons V2", url: "https://ponsfamily.com", implemented: true },
+  { id: "flap", name: "Flap", url: "https://flap.sh", implemented: true },
+  { id: "trench", name: "Trench", url: "https://trench.today", implemented: true },
+  { id: "bow", name: "Bow", url: "https://bow.fun", implemented: true },
+  { id: "bags", name: "Bags", url: "https://bags.fm", implemented: true },
+  // ── Phase 2b (reserved, not yet implemented) ─────────────────
   { id: "poolsfun", name: "Pools.fun", url: "https://pools.fun", implemented: false },
   { id: "letscash", name: "letscash", url: "https://letscash.fun", implemented: false },
   { id: "long", name: "Long", url: "https://long.xyz", implemented: false },

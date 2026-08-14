@@ -22,6 +22,7 @@ import { enrichRobinhoodWithCoinMarketCap } from "./sources/coinmarketcap";
 import { enrichRobinhoodWithDefiLlama } from "./sources/defillama";
 import {
   fetchLaunchpadTokens,
+  getCachedLaunchpadTokens,
   launchpadRefreshMs,
 } from "./sources/launchpad";
 import type { LaunchpadFeedResponse } from "./sources/launchpad/types";
@@ -221,9 +222,10 @@ export async function getTrendingFeed(): Promise<FeedResponse> {
   }
 
   // Launchpads (Kombinasi): graduated tokens with a real pool join trending.
+  // Cached-only read — never blocks trending on slow launchpad APIs.
   try {
-    const lp = await fetchLaunchpadTokens();
-    const graduated = lp.tokens
+    const lp = await getCachedLaunchpadTokens();
+    const graduated = lp
       .filter(isGraduated)
       .map(launchpadTokenToTrackedPair);
     if (graduated.length) {

@@ -15,6 +15,12 @@ const PLATFORM_STYLE: Record<string, { color: string; bg: string }> = {
   poolstrade: { color: "#ff7ac3", bg: "rgba(255,122,195,.14)" },
   sushi: { color: "#f43f5e", bg: "rgba(244,63,94,.14)" },
   o1exchange: { color: "#22d3ee", bg: "rgba(34,211,238,.14)" },
+  pons: { color: "#f59e0b", bg: "rgba(245,158,11,.14)" },
+  ponsv2: { color: "#fbbf24", bg: "rgba(251,191,36,.14)" },
+  flap: { color: "#fb7185", bg: "rgba(251,113,133,.14)" },
+  trench: { color: "#4ade80", bg: "rgba(74,222,128,.14)" },
+  bow: { color: "#c084fc", bg: "rgba(192,132,252,.14)" },
+  bags: { color: "#60a5fa", bg: "rgba(96,165,250,.14)" },
 };
 
 function platformStyle(platform: string) {

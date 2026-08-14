@@ -79,11 +79,14 @@ function mapBankrLaunch(raw: BankrRawLaunch): LaunchpadToken | null {
     volume24hUsd: parseMaybeNumber(raw.volume24h),
     launchTimeMs,
     ageMs: launchTimeMs != null ? Date.now() - launchTimeMs : null,
+    launchBlock: null,
     imageUrl: raw.logo || raw.imageUrl || null,
     description: raw.description || null,
-    socials: (raw.socials || [])
-      .map((s) => ({ type: s.type || "link", url: s.url || "" }))
-      .filter((s) => s.url),
+    socials: Array.isArray(raw.socials)
+      ? raw.socials
+          .map((s) => ({ type: s.type || "link", url: s.url || "" }))
+          .filter((s) => s.url)
+      : [],
     graduationProgressPct: null,
     thresholdQuote: null,
     devBuyUsd: parseMaybeNumber(raw.launchFee),

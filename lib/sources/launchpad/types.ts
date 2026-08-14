@@ -56,6 +56,8 @@ export interface LaunchpadToken {
   /** Unix ms. */
   launchTimeMs: number | null;
   ageMs: number | null;
+  /** Block number where the launch event was emitted (on-chain sources). */
+  launchBlock: number | null;
   imageUrl: string | null;
   description: string | null;
   socials: { type: string; url: string }[];

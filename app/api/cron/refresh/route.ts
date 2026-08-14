@@ -18,7 +18,8 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
 import { refreshAllFeeds } from "@/lib/background-refresh";
-import { getBoostsFeed, getNewPairsFeed, getTrendingFeed } from "@/lib/aggregate";
+import { getBoostsFeed, getLaunchpadFeed, getNewPairsFeed, getTrendingFeed } from "@/lib/aggregate";
+import { refreshOnchainIndex } from "@/lib/sources/launchpad/onchain";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30; // Cron jobs can run up to 30s on Hobby plan
@@ -28,7 +29,7 @@ type RefreshResult = {
   errors: string[];
 };
 
-const feedEnum = z.enum(["new", "trending", "boosts"]).optional();
+const feedEnum = z.enum(["new", "trending", "boosts", "launchpads"]).optional();
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -74,8 +75,38 @@ export async function GET(request: Request) {
     } else if (feed === "boosts") {
       const data = await getBoostsFeed();
       result = { feeds: { boosts: { count: data.count, status: "ok" as const } }, errors: [] };
+    } else if (feed === "launchpads") {
+      // Run the on-chain indexer (chunked eth_getLogs scans) and store
+      // the result; also pre-warm the REST launchpad cache.
+      const [onchain, lp] = await Promise.allSettled([
+        refreshOnchainIndex(),
+        getLaunchpadFeed(),
+      ]);
+      result = {
+        feeds: {
+          launchpads: {
+            count:
+              onchain.status === "fulfilled"
+                ? onchain.value.length
+                : lp.status === "fulfilled"
+                  ? lp.value.count
+                  : 0,
+            status: onchain.status === "fulfilled" || lp.status === "fulfilled" ? ("ok" as const) : ("error" as const),
+          },
+        },
+        errors: [],
+      };
+      if (onchain.status === "rejected") result.errors.push(`onchain: ${String(onchain.reason).slice(0, 200)}`);
+      if (lp.status === "rejected") result.errors.push(`launchpads: ${String(lp.reason).slice(0, 200)}`);
     } else {
       result = await refreshAllFeeds();
+      // Also refresh the on-chain launchpad index (cheap via Redis-read).
+      try {
+        const lp = await getLaunchpadFeed();
+        result.feeds.launchpads = { count: lp.count, status: "ok" as const };
+      } catch (e) {
+        result.errors.push(`launchpads: ${String(e).slice(0, 200)}`);
+      }
     }
 
     return NextResponse.json({

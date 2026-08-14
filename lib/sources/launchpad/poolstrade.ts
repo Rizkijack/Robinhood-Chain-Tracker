@@ -97,6 +97,7 @@ function mapPoolLaunch(raw: PoolLaunch): LaunchpadToken | null {
     volume24hUsd: parseMaybeNumber(raw.volume24h),
     launchTimeMs,
     ageMs: launchTimeMs != null ? Date.now() - launchTimeMs : null,
+    launchBlock: null,
     imageUrl: raw.logo || null,
     description: raw.description || null,
     socials: [],

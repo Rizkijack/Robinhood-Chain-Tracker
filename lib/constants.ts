@@ -106,6 +106,7 @@ export const SOURCE_TIMING: Record<string, SourceTiming> = {
   poolstrade: { cacheTtlMs: 20_000, refreshMs: 20_000 },
   sushi: { cacheTtlMs: 30_000, refreshMs: 30_000 },
   o1exchange: { cacheTtlMs: 30_000, refreshMs: 30_000, requiresApiKey: true, apiKeyEnv: "O1_EXCHANGE_API_KEY" },
+  onchain: { cacheTtlMs: 30_000, refreshMs: 30_000 },
 };
 
 /** Sources that are currently usable given the environment (API keys, etc.). */

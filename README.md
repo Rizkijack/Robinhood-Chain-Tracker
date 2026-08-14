@@ -9,7 +9,7 @@ Track **early / new pair tokens** on **Robinhood Chain (L2) Mainnet** by aggrega
 | **Birdeye.so** | Trending + new listings tokens (Free Standard plan) | ⚠️ `BIRDEYE_API_KEY` |
 | **CoinGecko** | Best-effort price/market-cap enrichment of Robinhood tokens (by symbol) | ✅ |
 | **CoinMarketCap** | Best-effort price/market-cap enrichment of Robinhood tokens (by symbol, API key) | ⚠️ `COINMARKETCAP_API_KEY` |
-| **Launchpads** | lemon.fun, Bankr, Pools.trade, Sushi Launchpad, 01.exchange (bonding-curve / auction / locked-LP token launches) | ⚠️ `O1_EXCHANGE_API_KEY` (01.exchange only) |
+| **Launchpads** | lemon.fun, Bankr, Pools.trade, Sushi Launchpad, 01.exchange (public APIs) + Pons V1/V2, Flap, Trench, Bow, Bags (on-chain factory indexer) | ⚠️ `O1_EXCHANGE_API_KEY` (01.exchange only) |
 | **DEXes** | Uniswap V2/V3/V4, PancakeSwap V2/V3, Bankr, Virtuals (via GeckoTerminal) | ✅ |
 
 ## Chain
@@ -39,7 +39,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - **Trending** — GeckoTerminal trending pools + DexScreener + Birdeye, enriched with DexScreener, GeckoTerminal, CoinGecko & CoinMarketCap real-time data. **Every row is a Robinhood-chain token** — CoinGecko/CMC only enrich existing Robinhood rows by symbol; they never add global coins.
 - **Boosts** — DexScreener latest/top boosts filtered to Robinhood
 - **Search** — DexScreener + GeckoTerminal search, Robinhood pairs only
-- **Launchpads** — dedicated tab aggregating token launches from lemon.fun, Bankr, Pools.trade, Sushi Launchpad & 01.exchange; phase filter (bonding/auction/graduated); graduated tokens also flow into Trending
+- **Launchpads** — dedicated tab aggregating token launches from lemon.fun, Bankr, Pools.trade, Sushi Launchpad, 01.exchange (public APIs) + Pons V1/V2, Flap, Trench, Bow, Bags (on-chain factory indexer, refreshed by cron); phase filter (bonding/auction/graduated); graduated tokens also flow into Trending
 - **Filters** — max age, min liquidity, min volume, DEX
 - **Adaptive auto-refresh** — the client polls at the fastest cadence among enabled sources; each source caches server-side at its own rate-limit-aware TTL (DexScreener 20s, GeckoTerminal/Birdeye 30s, CoinGecko 60s, CoinMarketCap 300s). The exact interval is returned per feed as `recommendedRefreshMs`.
 - Per-row links: DexScreener, GeckoTerminal, CoinGecko, Birdeye, CoinMarketCap, copy address

@@ -85,12 +85,14 @@ function mapLemonToken(raw: LemonRawToken): LaunchpadToken | null {
   const symbol = raw.symbol?.trim() || "???";
 
   const platform = launchpadInfo("lemon");
-  const socials = (raw.socials || [])
-    .map((s) => ({
-      type: s.type || "link",
-      url: s.url || "",
-    }))
-    .filter((s) => s.url);
+  const socials = Array.isArray(raw.socials)
+    ? raw.socials
+        .map((s) => ({
+          type: s.type || "link",
+          url: s.url || "",
+        }))
+        .filter((s) => s.url)
+    : [];
 
   return {
     id: `lemon:${tokenAddress}`,
@@ -109,6 +111,7 @@ function mapLemonToken(raw: LemonRawToken): LaunchpadToken | null {
     volume24hUsd: parseMaybeNumber(raw.volume24h ?? raw.totalVolume),
     launchTimeMs,
     ageMs: launchTimeMs != null ? Date.now() - launchTimeMs : null,
+    launchBlock: null,
     imageUrl: raw.logo || raw.imageUrl || null,
     description: raw.description || null,
     socials,
