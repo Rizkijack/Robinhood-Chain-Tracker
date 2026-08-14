@@ -86,7 +86,10 @@ export async function fetchBlockscoutTokenTransfers(
   const pair = options.pairAddress?.toLowerCase();
   const price = options.tokenPriceUsd;
 
-  const cacheKey = `blockscout:txns:v2:${addr}:${pair || "all"}:${pages}`;
+  // Price is part of the key: USD values are computed from it, so two
+  // callers with different prices must not share a cached payload.
+  const priceKey = price != null ? price : "np";
+  const cacheKey = `blockscout:txns:v3:${addr}:${pair || "all"}:${pages}:${priceKey}`;
   return cached(cacheKey, TX_CACHE_TTL_MS, async () => {
     const all: BlockscoutV1Transfer[] = [];
     for (let page = 1; page <= pages; page++) {
@@ -162,13 +165,16 @@ function normalizeTransfer(
       trader = from;
     } else if (opts.pair) {
       // Known pool: direction relative to the pool determines buy/sell.
-      if (to === opts.pair) {
-        kind = "buy"; // user receives token from pool
-        trader = from;
-        dexName = "Uniswap";
-      } else if (from === opts.pair) {
-        kind = "sell"; // user sends token to pool
+      // ERC-20 Transfer(from, to): a BUY is the pool sending token to the
+      // user (from === pool), a SELL is the user sending token to the pool
+      // (to === pool).
+      if (from === opts.pair) {
+        kind = "buy"; // token leaves pool → user receives it
         trader = to;
+        dexName = "Uniswap";
+      } else if (to === opts.pair) {
+        kind = "sell"; // token enters pool → user sent it
+        trader = from;
         dexName = "Uniswap";
       } else {
         kind = "transfer";
@@ -198,6 +204,8 @@ function normalizeTransfer(
       hash: raw.hash,
       type: kind,
       trader,
+      from,
+      to,
       tokenAmount,
       tokenSymbol: raw.tokenSymbol || "TOKEN",
       usdValue,

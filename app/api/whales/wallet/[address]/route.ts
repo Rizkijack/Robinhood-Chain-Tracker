@@ -17,6 +17,14 @@ const walletSchema = z.object({ address: addressParam });
 const MAX_TRACKED_TOKENS = 20;
 /** Max transfers to keep for this wallet. */
 const MAX_TXS = 50;
+/** Strict 0x-prefixed 40-hex-char contract address. */
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+
+/** A token from the feed that we scan for this wallet's transfers. */
+interface ScanToken {
+  tokenAddress: string;
+  priceUsd: number | null;
+}
 
 /**
  * GET /api/whales/wallet/[address]
@@ -43,13 +51,16 @@ export const GET = withRateLimit(
 
     try {
       // Resolve tracked tokens to scan.
-      let tokens: string[] = [];
+      let tokens: ScanToken[] = [];
       try {
         const feed = await getNewPairsFeed();
         tokens = feed.pairs
-          .filter((p) => p.tokenAddress && p.tokenAddress.length === 42)
+          .filter((p) => p.tokenAddress && ADDRESS_RE.test(p.tokenAddress))
           .slice(0, MAX_TRACKED_TOKENS)
-          .map((p) => p.tokenAddress);
+          .map((p) => ({
+            tokenAddress: p.tokenAddress.toLowerCase(),
+            priceUsd: p.priceUsd,
+          }));
       } catch {
         // Feed failure — nothing to scan.
       }
@@ -69,12 +80,21 @@ export const GET = withRateLimit(
       for (let i = 0; i < tokens.length; i += batchSize) {
         const batch = tokens.slice(i, i + batchSize);
         const results = await Promise.allSettled(
-          batch.map(async (tokenAddress) => {
-            const txs = await fetchBlockscoutTokenTransfers(tokenAddress, {
+          batch.map(async (t) => {
+            const txs = await fetchBlockscoutTokenTransfers(t.tokenAddress, {
               pages: 2,
+              // Price is required: Blockscout v1 returns no USD value.
+              tokenPriceUsd: t.priceUsd,
             });
-            // Keep transfers where this wallet is the sender or recipient.
-            return txs.filter((tx) => tx.trader.toLowerCase() === walletAddr);
+            // Keep transfers where this wallet is the sender OR recipient.
+            // `from`/`to` are the raw ERC-20 transfer sides; `trader` is the
+            // derived human side (fallback for safety).
+            return txs.filter(
+              (tx) =>
+                tx.from === walletAddr ||
+                tx.to === walletAddr ||
+                tx.trader.toLowerCase() === walletAddr
+            );
           })
         );
 

@@ -14,6 +14,16 @@ const MAX_TRACKED_TOKENS = 15;
 const MAX_PER_TOKEN = 10;
 /** Min USD to call a transfer a "whale" (matches WHALE_THRESHOLD_USD). */
 const MIN_WHALE_USD = 10_000;
+/** Strict 0x-prefixed 40-hex-char contract address. */
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+
+/** A token from the feed that we scan for whale transfers. */
+interface ScanToken {
+  tokenAddress: string;
+  symbol: string;
+  priceUsd: number | null;
+  pairAddress: string;
+}
 
 /**
  * GET /api/whales
@@ -29,13 +39,18 @@ const MIN_WHALE_USD = 10_000;
 export const GET = withRateLimit(whaleLimiter, async () => {
   try {
     // Get the most recent tracked tokens to know which contracts to scan.
-    let tokens: { tokenAddress: string; symbol: string }[] = [];
+    let tokens: ScanToken[] = [];
     try {
       const feed = await getNewPairsFeed();
       tokens = feed.pairs
-        .filter((p) => p.tokenAddress && p.tokenAddress.length === 42)
+        .filter((p) => p.tokenAddress && ADDRESS_RE.test(p.tokenAddress))
         .slice(0, MAX_TRACKED_TOKENS)
-        .map((p) => ({ tokenAddress: p.tokenAddress, symbol: p.symbol }));
+        .map((p) => ({
+          tokenAddress: p.tokenAddress.toLowerCase(),
+          symbol: p.symbol,
+          priceUsd: p.priceUsd,
+          pairAddress: p.pairAddress,
+        }));
     } catch {
       // Feed failure — fall back to empty list; the endpoint returns [].
     }
@@ -57,6 +72,12 @@ export const GET = withRateLimit(whaleLimiter, async () => {
         batch.map(async (t) => {
           const txs = await fetchBlockscoutTokenTransfers(t.tokenAddress, {
             pages: 2,
+            // Price is required: Blockscout v1 returns no USD value, so
+            // without it every usdValue is 0 and the whale filter below
+            // would drop the entire feed.
+            tokenPriceUsd: t.priceUsd,
+            // Pair address enables correct buy/sell classification.
+            pairAddress: t.pairAddress,
           });
           return txs
             .filter((tx) => (tx.usdValue || 0) >= MIN_WHALE_USD)
