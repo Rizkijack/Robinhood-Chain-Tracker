@@ -92,17 +92,34 @@ const client = createPublicClient({
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Flush stdout per line so progress is visible when redirected to a file.
+const log = (msg) => {
+  console.log(msg);
+  try { process.stdout.write(""); } catch { /* ignore */ }
+};
+
+/** RPC call with a hard timeout (public RPC can hang). */
+async function rpcCall(fn) {
+  const timeoutMs = 30_000;
+  return Promise.race([
+    fn(),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("RPC timeout")), timeoutMs)
+    ),
+  ]);
+}
+
 async function scanPlatform(p) {
   const stored = redis ? await redis.get(`${PREFIX}${p.id}`) : null;
   let from = Number(stored) || p.deployBlock;
-  const head = Number(await client.getBlockNumber());
+  const head = Number(await rpcCall(() => client.getBlockNumber()));
   let to = head;
 
-  console.log(`\n=== ${p.id} ===`);
-  console.log(`  factory:     ${p.factory}`);
-  console.log(`  from:        ${from} (deploy ${p.deployBlock})`);
-  console.log(`  to:          ${to} (head)`);
-  console.log(`  blocks:      ${to - from} (${chunkSize}/chunk → ${Math.ceil((to - from) / chunkSize)} calls)`);
+  log(`\n=== ${p.id} ===`);
+  log(`  factory:     ${p.factory}`);
+  log(`  from:        ${from} (deploy ${p.deployBlock})`);
+  log(`  to:          ${to} (head)`);
+  log(`  blocks:      ${to - from} (${chunkSize}/chunk → ${Math.ceil((to - from) / chunkSize)} calls)`);
 
   let tokens = [];
   let cursor = from;
@@ -112,12 +129,12 @@ async function scanPlatform(p) {
     const end = Math.min(cursor + chunkSize - 1, to);
     calls++;
     try {
-      const logs = await client.getLogs({
+      const logs = await rpcCall(() => client.getLogs({
         address: p.factory,
         event: parseEvent(p.event),
         fromBlock: BigInt(cursor),
         toBlock: BigInt(end),
-      });
+      }));
       for (const l of logs) {
         const argsObj = l.args || {};
         const token = String(argsObj.token || "").toLowerCase();
@@ -126,21 +143,21 @@ async function scanPlatform(p) {
         }
       }
       if (calls % 25 === 0) {
-        console.log(`  ...${calls} calls, ${tokens.length} tokens (block ${end})`);
+        log(`  ...${calls} calls, ${tokens.length} tokens (block ${end})`);
       }
       cursor = end + 1;
       await sleep(120);
     } catch (e) {
-      console.error(`  !! chunk ${cursor}-${end} failed: ${String(e).slice(0, 120)}`);
+      log(`  !! chunk ${cursor}-${end} failed: ${String(e).slice(0, 120)}`);
       await sleep(1500);
       // Retry once with smaller chunk
       try {
-        const logs = await client.getLogs({
+        const logs = await rpcCall(() => client.getLogs({
           address: p.factory,
           event: parseEvent(p.event),
           fromBlock: BigInt(cursor),
           toBlock: BigInt(Math.min(cursor + Math.floor(chunkSize / 2), to)),
-        });
+        }));
         for (const l of logs) {
           const argsObj = l.args || {};
           const token = String(argsObj.token || "").toLowerCase();
@@ -148,20 +165,20 @@ async function scanPlatform(p) {
         }
         cursor = Math.min(cursor + Math.floor(chunkSize / 2), to) + 1;
       } catch (e2) {
-        console.error(`  !! retry failed at ${cursor}, skipping to ${cursor + 1000}`);
+        log(`  !! retry failed at ${cursor}, skipping to ${cursor + 1000}`);
         cursor = cursor + 1000;
       }
     }
   }
 
-  console.log(`  done: ${calls} calls, ${tokens.length} tokens`);
+  log(`  done: ${calls} calls, ${tokens.length} tokens`);
   return { platform: p.id, tokens, cursor: to };
 }
 
 async function main() {
-  console.log(`Robinhood Chain launchpad backfill`);
-  console.log(`RPC: ${RPC}`);
-  console.log(`Chunk: ${chunkSize} | Dry-run: ${dryRun}`);
+  log(`Robinhood Chain launchpad backfill`);
+  log(`RPC: ${RPC}`);
+  log(`Chunk: ${chunkSize} | Dry-run: ${dryRun}`);
 
   const targets = PLATFORMS.filter((p) => !platformFilter || p.id === platformFilter);
   const results = [];
@@ -175,21 +192,21 @@ async function main() {
     }
   }
 
-  console.log(`\n=== SUMMARY ===`);
+  log(`\n=== SUMMARY ===`);
   for (const r of results) {
-    console.log(`  ${r.platform}: ${r.tokens.length} tokens, cursor → ${r.cursor}`);
+    log(`  ${r.platform}: ${r.tokens.length} tokens, cursor → ${r.cursor}`);
   }
-  console.log(`  unique tokens: ${allTokens.size}`);
+  log(`  unique tokens: ${allTokens.size}`);
 
   if (dryRun || !redis) {
-    console.log(dryRun ? "\n(dry-run — nothing written)" : "\n(no Redis credentials — nothing written)");
+    log(dryRun ? "\n(dry-run — nothing written)" : "\n(no Redis credentials — nothing written)");
     return;
   }
 
-  console.log("\nWriting to Upstash Redis…");
+  log("\nWriting to Upstash Redis…");
   for (const r of results) {
     await redis.set(`${PREFIX}${r.platform}`, r.cursor, { ex: 60 * 60 * 24 * 30 });
-    console.log(`  cursor ${r.platform} → ${r.cursor}`);
+    log(`  cursor ${r.platform} → ${r.cursor}`);
   }
   const index = [...allTokens.values()].map((t) => ({
     id: t.token,
@@ -198,8 +215,8 @@ async function main() {
     block: t.block,
   }));
   await redis.set(INDEX_KEY, index, { ex: 60 * 60 * 6 });
-  console.log(`  index stored: ${index.length} tokens (TTL 6h — cron will refresh)`);
-  console.log("\nDone. Vercel cron will now keep the index fresh.");
+  log(`  index stored: ${index.length} tokens (TTL 6h — cron will refresh)`);
+  log("\nDone. Vercel cron will now keep the index fresh.");
 }
 
 // Minimal event parser (topic0 = keccak of signature) using viem's parser.
